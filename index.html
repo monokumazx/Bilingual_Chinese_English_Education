@@ -76,6 +76,31 @@
               { chinese: '门 (mén)', english: 'Subject', description: '指整个学科或课程，是学习的整体内容。Refers to an entire subject or course, the overall academic discipline.', chineseExample: '我这学期选了三门课程。她学了一门法语。', englishExample: 'I chose three courses this semester. She is studying a foreign language.' },
               { chinese: '节 (jié)', english: 'Class period', description: '课程中的时间段或课时，是上课的分段。Refers to a specific time segment or lesson period within a class schedule.', chineseExample: '今天我们有两节数学课。每节课四十五分钟。', englishExample: 'Today we have two math class periods. Each class period lasts 45 minutes.' },
               { chinese: '堂 (táng)', english: 'Session', description: '课程或讲座的次数。Number of classes or lectures in a session; can be segmented.', chineseExample: '他每天上一堂英语课。这个月有五堂教学讲座。', englishExample: 'He attends one English class every day. There are five teaching lectures this month.' },
+              // New section added here
+              {
+                chinese: '差异化 （Differentiating） 门、节、堂',
+                english: 'Differentiating Men, Jie, Tang',
+                description: `
+                  <p class="mb-2"><strong>Whole (堂) vs Part (节)</strong></p>
+                  <p class="mb-2">“请问两节(驾驶)课的费用是多少？什么？你们把两节组合成一堂课了？”</p>
+                  <p class="mb-4">"May I ask how much the cost is for two (periods of driving) lessons? What? You combined two classes into one session?"</p>
+                  <p class="text-sm text-gray-500 mb-4">- (This is a real-life example that I noticed when going into driving school. The use between 堂 and 节 became blurry because of the complexity of the service they are providing.)</p>
+                  <p class="text-sm text-gray-500 mb-4">source: <a href="https://chinese.stackexchange.com/questions/59104/difference-between-the-measure-words-%E8%8A%82-%E5%A0%82-and-%E9%97%A8" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">https://chinese.stackexchange.com/questions/59104/difference-between-the-measure-words-%E8%8A%82-%E5%A0%82-and-%E9%97%A8</a></p>
+                  <p class="mb-2"><strong>Entirety (门) vs Segment (节)</strong></p>
+                  <p class="mb-2">“今天我有两门课：数学和英语。其中，第一节是数学课，第二节是英语课。”</p>
+                  <p class="mb-4">"Today, I have two subjects: math and English. The first period is math class, and the second period is English class.</p>
+                  <p class="mb-2">“今天我有两门课，其中一节是和我的朋友一起上的。”</p>
+                  <p class="mb-4">"Today, I have two classes, one of which I am taking a period with my friend."</p>
+                  <p class="text-sm text-gray-500 mb-4">- In this second example, the first part of the sentence "我有两门课" can be interchangeable with "我有两节课" as the number of classes (门) and the segments of the class in your schedule (节) both works.</p>
+                  <p class="mb-2">“下学期这门美术课就一节。而且是梅老师教的。”</p>
+                  <p class="mb-4">“There is only one period of art for this course next semester. It is taught by Mr. Mei.”</p>
+                  <p class="mb-2">“我以前上过一（门/节）关于教导迟缓学生如何阅读的课。”</p>
+                  <p class="mb-4">"I took a (course/period) about teaching delayed students how to read."</p>
+                  <p class="text-sm font-bold text-red-600 mb-2">***- This is an IMPORTANT example, as it shows how based on the context (,which measure word you use,) it will affect the whole sentence.）***</p>
+                `,
+                isHtmlDescription: true, // Custom flag to indicate HTML content
+                fullWidth: true // New flag to make this card span full width
+              },
             ],
           },
           {
@@ -86,7 +111,7 @@
               { chinese: '学生 (xué shēng)', english: 'Student', description: '在学校或其他教育机构学习的人。A person who is studying at a school or other educational institution.', chineseExample: '他是一名小学学生。', englishExample: 'He is an elementary school student.' },
               { chinese: '教师 (jiào shī)', english: 'Teacher', description: '在学校或其他教育环境中教授的人员。A person who teaches in a school or other educational setting.', chineseExample: '她是一位英语教师。', englishExample: 'She is an English teacher.' },
               { chinese: '班主任 (主班老师) (bān zhǔ rèn)', english: 'Homeroom Teacher / Class Teacher', description: '负责管理班级及处理与班级相关的行政事务的教师。The teacher responsible for managing a class and handling administrative tasks related to the class.', chineseExample: '班主任每天负责点名和与家长沟通。', englishExample: 'The homeroom teacher handles daily attendance and parent communication.' },
-              { chinese: '助理老师 / 助教 / 配班老师 / 副班主任 (zhù lǐ lǎo shī / zhù jiào)', english: 'Assistant Teacher / Teaching Assistant', description: '联合教学中协助主班教师的老师，协助教学与行政事务。A teacher who assists the primary teacher with instructional and administrative tasks, often in co-teaching settings.', chineseExample: '助教帮助主班老师备课。', englishExample: 'The TA assists the lead teacher with lesson planning.' },
+              { chinese: '助理老师 / 助教 / 配班老师 / 副班主任 (zhù lì lǎo shī / zhù jiào)', english: 'Assistant Teacher / Teaching Assistant', description: '联合教学中协助主班教师的老师，协助教学与行政事务。A teacher who assists the primary teacher with instructional and administrative tasks, often in co-teaching settings.', chineseExample: '助教帮助主班老师备课。', englishExample: 'The TA assists the lead teacher with lesson planning.' },
               { chinese: '特殊教育老师 (tè shū jiào yù lǎo shī)', english: 'Special Education Teacher', description: '针对有特殊学习需求的学生进行教学。Teaches students with special learning needs.', chineseExample: '特教老师为学生制定个别化学习计划。', englishExample: 'The special education teacher creates individualized learning plans.' },
               { chinese: '助教 (教辅人员) (zhù jiào / jiào fǔ rén yuán)', english: 'Para (Paraprofessional)', description: 'Paraprofessional (教辅人员) refers to support staff who assist teachers, often in specialized roles such as providing full-day support to a student. The term is broad and requires clarification of specific duties. 教辅人员(paraprofessional)指协助教师的支持人员，常承担专门角色，如全天候为某学生提供支持。该词含义广泛，需具体说明职责。教辅人员简称“助教”（para）。', chineseExample: '这位教辅人员全天陪伴一名特殊需要学生。', englishExample: 'The para stays with a student who needs support all day.' },
               { chinese: '实习老师 (shí xí lǎo shī)', english: 'Student Teacher', description: '正在接受培训、进行实习的准教师。A prospective teacher undergoing training and practicum.', chineseExample: '实习老师正在参加教学实习。', englishExample: 'The student teacher is participating in a teaching practicum.' },
@@ -98,7 +123,7 @@
               { chinese: '辅导人／辅导员 (fǔ dǎo yuán)', english: 'Counselor / Student Advisor', description: '提供学生心理、学习或生活指导的人员。Provides students with academic, emotional, or life guidance.', chineseExample: '––', englishExample: '––' },
               { chinese: '系主任 (xì zhǔ rèn)', english: 'Department Chairperson', description: '大学或学院内一个学术部门的负责人。Head of an academic department within a college or university.', chineseExample: '––', englishExample: '––' },
               { chinese: '主管 (zhǔ guǎn)', english: 'Director / Administrator', description: '负责行政或部门管理工作的人员。A manager or administrator in a school or department.', chineseExample: '––', englishExample: '––' },
-              { chinese: '行政助理 (xíng zhèng zhù lǐ)', english: 'Administrative Assistant', description: '协助学校行政事务的职员。Staff member who assists with school administrative tasks.', chineseExample: '––', englishExample: '––' },
+              { chinese: '行政助理 (xíng zhèng zhù lì)', english: 'Administrative Assistant', description: '协助学校行政事务的职员。Staff member who assists with school administrative tasks.', chineseExample: '––', englishExample: '––' },
               { chinese: '校医 (学校护士) (xiào yī)', english: 'School Nurse', description: '在学校提供医疗服务的专业人员。Provides health care services in schools.', chineseExample: '––', englishExample: '––' },
               { chinese: '心理辅导员 (xīn lǐ fǔ dǎo yuán)', english: '(School) Psychologist', description: '提供心理健康评估与咨询的专业人员。Provides mental health support and psychological assessment.', chineseExample: '––', englishExample: '––' },
               { chinese: '图书管理员 (tú shū guǎn lǐ yuán)', english: 'Librarian', description: '负责管理图书馆资源与借阅的人员。Manages library resources and student access.', chineseExample: '––', englishExample: '––' },
@@ -567,7 +592,7 @@
                   { chinese: '教学资源 (jiàoxué zīyuán)', english: 'Instructional Resources', description: '支持教学活动的所有资源，如教材、视频、工具等。All materials that support instruction such as books, videos, and tools.', chineseExample: '学校为教师提供丰富的教学资源。', englishExample: 'The school provides teachers with abundant instructional resources.' },
                   { chinese: '教科书 / 课本 (jiàokēshū / kèběn)', english: 'Textbook', description: '正规课程使用的主要教材。The main textbook used in a formal course.', chineseExample: '我们的语文课本是新出版的。', englishExample: 'Our Chinese textbook is newly published.' },
                   { chinese: '课外书 (kèwài shū)', english: 'Extracurricular Reading', description: '非正式学习中阅读的书籍，拓展学生视野。Books read outside the formal curriculum to broaden students’ knowledge.', chineseExample: '她喜欢阅读英文课外书。', englishExample: 'She enjoys reading English extracurricular books.' },
-                  { chinese: '练习册 (liànxí cè)', english: 'Workbook', description: '配合课本的练习用书。A book containing exercises that accompany a textbook.', chineseExample: '数学练习册每天要做两页。', englishExample: 'Two pages of the math workbook are assigned each day.' },
+                  { chinese: '练习册 (liànxí cè)', english: 'Workbook', description: '配合课本的练习用书。A book containing exercises that accompany a textbook.', chineseExample: '数学练习册每天要做两页。', chineseExample: 'Two pages of the math workbook are assigned each day.' },
                   { chinese: '题目册 / 作业包 (tímù cè / zuòyè bāo)', english: 'Work Packet', description: '打包的作业和练习资料。A packet of exercises or assignments.', chineseExample: '老师发了一个周末作业包。', englishExample: 'The teacher gave out a weekend work packet.' },
                   { chinese: '学材 (xuécái)', english: 'Teaching Materials', description: '泛指所有教学和学习中使用的材料。A general term for any materials used in teaching and learning.', chineseExample: '学校每年更新部分学材。', englishExample: 'The school updates some of the learning materials each year.' },
                 ],
@@ -674,38 +699,48 @@
         ];
 
         // VocabularyCard component to display a single vocabulary entry
-        const VocabularyCard = ({ term }) => (
-          <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 text-gray-800">
-            <h3 className="text-xl font-semibold text-blue-700 mb-2">{term.chinese}</h3>
-            <p className="text-gray-700 text-lg mb-2">{term.english}</p>
-            {term.description && (
-              <p className="text-gray-600 text-sm mb-2">
-                <span className="font-medium">说明:</span> {term.description}
-              </p>
-            )}
-            {term.englishDescription && (
-              <p className="text-gray-600 text-sm mb-2">
-                <span className="font-medium">Description:</span> {term.englishDescription}
-              </p>
-            )}
-            {term.ageRange && (
-              <p className="text-gray-600 text-sm mb-1">
-                <span className="font-medium">年龄范围:</span> {term.ageRange}
-                {term.englishAgeRange && ` (${term.englishAgeRange})`}
-              </p>
-            )}
-            {term.chineseExample && (
-              <p className="text-gray-600 text-sm mb-1">
-                <span className="font-medium">中文示例:</span> {term.chineseExample}
-              </p>
-            )}
-            {term.englishExample && (
-              <p className="text-gray-600 text-sm">
-                <span className="font-medium">英文示例:</span> {term.englishExample}
-              </p>
-            )}
-          </div>
-        );
+        const VocabularyCard = ({ term }) => {
+          // Apply col-span-full if term.fullWidth is true, otherwise default to auto-sizing in the grid
+          const cardClassName = `bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 text-gray-800 ${term.fullWidth ? 'col-span-full' : ''}`;
+
+          return (
+            <div className={cardClassName}>
+              <h3 className="text-xl font-semibold text-blue-700 mb-2">{term.chinese}</h3>
+              <p className="text-gray-700 text-lg mb-2">{term.english}</p>
+              {/* Conditionally render description based on isHtmlDescription flag */}
+              {term.isHtmlDescription ? (
+                <div className="text-gray-600 text-sm mb-2" dangerouslySetInnerHTML={{ __html: term.description }} />
+              ) : (
+                term.description && (
+                  <p className="text-gray-600 text-sm mb-2">
+                    <span className="font-medium">说明:</span> {term.description}
+                  </p>
+                )
+              )}
+              {term.englishDescription && (
+                <p className="text-gray-600 text-sm mb-2">
+                  <span className="font-medium">Description:</span> {term.englishDescription}
+                </p>
+              )}
+              {term.ageRange && (
+                <p className="text-gray-600 text-sm mb-1">
+                  <span className="font-medium">年龄范围:</span> {term.ageRange}
+                  {term.englishAgeRange && ` (${term.englishAgeRange})`}
+                </p>
+              )}
+              {term.chineseExample && (
+                <p className="text-gray-600 text-sm mb-1">
+                  <span className="font-medium">中文示例:</span> {term.chineseExample}
+                </p>
+              )}
+              {term.englishExample && (
+                <p className="text-gray-600 text-sm">
+                  <span className="font-medium">英文示例:</span> {term.englishExample}
+                </p>
+              )}
+            </div>
+          );
+        };
 
         // Recursive component to render vocabulary sections
         const CategorySection = ({ category, depth = 0 }) => {
@@ -829,10 +864,13 @@
             };
 
             allTermsFlat.forEach(term => {
+              // Check if the term's chinese, english, or description (including HTML content) matches the search term
+              const descriptionText = term.isHtmlDescription ? new DOMParser().parseFromString(term.description, 'text/html').body.textContent : term.description;
+
               if (
                 term.chinese.toLowerCase().includes(lowerCaseSearchTerm) ||
                 term.english.toLowerCase().includes(lowerCaseSearchTerm) ||
-                (term.description && term.description.toLowerCase().includes(lowerCaseSearchTerm)) ||
+                (descriptionText && descriptionText.toLowerCase().includes(lowerCaseSearchTerm)) ||
                 (term.englishDescription && term.englishDescription.toLowerCase().includes(lowerCaseSearchTerm)) ||
                 (term.ageRange && term.ageRange.toLowerCase().includes(lowerCaseSearchTerm)) ||
                 (term.englishAgeRange && term.englishAgeRange.toLowerCase().includes(lowerCaseSearchTerm)) ||
