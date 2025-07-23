@@ -7,7 +7,7 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts - Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">\
     <!-- React CDN -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -31,6 +31,24 @@
         }
         aside::-webkit-scrollbar-thumb:hover {
             background: #555;
+        }
+        /* Style for the play button */
+        .play-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 8px;
+            vertical-align: middle;
+            color: #4A90E2; /* Blue color for the icon */
+            transition: color 0.2s ease-in-out;
+        }
+        .play-button:hover {
+            color: #2D67B2; /* Darker blue on hover */
+        }
+        .play-button:disabled {
+            color: #A0AEC0; /* Gray out when disabled */
+            cursor: not-allowed;
         }
     </style>
 </head>
@@ -236,7 +254,7 @@
               { chinese: '考入大学 (kǎo rù dà xué)', english: 'to gain admission to a university', description: '通过考试/申请被录取。Being admitted by entrance exam or application.' },
               { chinese: '注册 (zhùcè)', english: 'to matriculate', description: '正式注册成为学生。Officially enrolled in a university.' },
               { chinese: '入学 (rùxué)', english: 'enrollment', description: '开始新的学习阶段。Beginning of a new stage of learning.' },
-              { chinese: '毕业 (bìyè)', english: 'graduation', description: '完成某一学习阶段。Finishing a level of education.' },
+              { chinese: '毕业 (bìyè)', description: 'graduation', description: '完成某一学习阶段。Finishing a level of education.' },
               { chinese: '继续深造 (jìxù shēnzào)', english: 'to continue one\'s education', description: '泛指后续学习（学历或非学历）。Any further education (degree or non-degree).' },
               { chinese: '申请 (shēnqǐng)', english: 'to apply (to schools)', description: '向学校提交入学请求，可包括提交表格、成绩、推荐信等材料。To submit an application to a school, often including forms, grades, and recommendations.' },
               { chinese: '报考 (bàokǎo)', english: 'to sign up for entrance exams', description: '报名参加学校的入学考试，常用于高考、研考等正式考试场合。To register for entrance exams, commonly used for Gaokao or graduate exams.' },
@@ -587,14 +605,14 @@
                   { chinese: '教学大纲 / 课纲 (jiàoxué dàgāng / kègāng)', english: 'Syllabus', description: '概述一门课的内容、目标、评估方式等的文件。A document outlining a course’s objectives, content, and assessments.', chineseExample: '老师在开学时发放了教学大纲。', englishExample: 'The teacher handed out the syllabus at the beginning of the term.' },
                   { chinese: '科目 (kēmù)', english: 'Subject', description: '单一的课程项目，如数学、语文等。An individual school subject such as math or language.', chineseExample: '他最喜欢的科目是历史。', englishExample: 'His favorite subject is history.' },
                   { chinese: '学科 (xuékē)', english: 'Discipline / Subject Area', description: '学术门类，如自然科学、人文学科。An academic field of study, like natural sciences or humanities.', chineseExample: '教育学是一个跨学科的学科。', englishExample: 'Education is an interdisciplinary discipline.' },
-                  { chinese: '学科交叉 (xuékē jiāochā)', english: 'Interdisciplinary', description: '涉及多个学科内容的整合。Integrating knowledge or methods from multiple disciplines.', chineseExample: '项目学习鼓励学科交叉。', englishExample: 'Project-based learning encourages interdisciplinary approaches.' },
-                  { chinese: '前置课 (qiánzhì kè)', english: 'Prerequisite', description: '学前必须完成的课程。A course that must be completed before taking a more advanced one.', chineseExample: '高等数学是工程类课程的前置课。', englishExample: 'Advanced math is a prerequisite for engineering courses.' },
-                  { chinese: '教学资源 (jiàoxué zīyuán)', english: 'Instructional Resources', description: '支持教学活动的所有资源，如教材、视频、工具等。All materials that support instruction such as books, videos, and tools.', chineseExample: '学校为教师提供丰富的教学资源。', englishExample: 'The school provides teachers with abundant instructional resources.' },
-                  { chinese: '教科书 / 课本 (jiàokēshū / kèběn)', english: 'Textbook', description: '正规课程使用的主要教材。The main textbook used in a formal course.', chineseExample: '我们的语文课本是新出版的。', englishExample: 'Our Chinese textbook is newly published.' },
-                  { chinese: '课外书 (kèwài shū)', english: 'Extracurricular Reading', description: '非正式学习中阅读的书籍，拓展学生视野。Books read outside the formal curriculum to broaden students’ knowledge.', chineseExample: '她喜欢阅读英文课外书。', englishExample: 'She enjoys reading English extracurricular books.' },
+                  { chinese: '学科交叉 (xuékē jiāochā)', english: 'Interdisciplinary', description: '涉及多个学科内容的整合。Integrating knowledge or methods from multiple disciplines.', chineseExample: '项目学习鼓励学科交叉。', chineseExample: 'Project-based learning encourages interdisciplinary approaches.' },
+                  { chinese: '前置课 (qiánzhì kè)', english: 'Prerequisite', description: '学前必须完成的课程。A course that must be completed before taking a more advanced one.', chineseExample: '高等数学是工程类课程的前置课。', chineseExample: 'Advanced math is a prerequisite for engineering courses.' },
+                  { chinese: '教学资源 (jiàoxué zīyuán)', english: 'Instructional Resources', description: '支持教学活动的所有资源，如教材、视频、工具等。All materials that support instruction such as books, videos, and tools.', chineseExample: '学校为教师提供丰富的教学资源。', chineseExample: 'The school provides teachers with abundant instructional resources.' },
+                  { chinese: '教科书 / 课本 (jiàokēshū / kèběn)', english: 'Textbook', description: '正规课程使用的主要教材。The main textbook used in a formal course.', chineseExample: '我们的语文课本是新出版的。', chineseExample: 'Our Chinese textbook is newly published.' },
+                  { chinese: '课外书 (kèwài shū)', english: 'Extracurricular Reading', description: '非正式学习中阅读的书籍，拓展学生视野。Books read outside the formal curriculum to broaden students’ knowledge.', chineseExample: '她喜欢阅读英文课外书。', chineseExample: 'She enjoys reading English extracurricular books.' },
                   { chinese: '练习册 (liànxí cè)', english: 'Workbook', description: '配合课本的练习用书。A book containing exercises that accompany a textbook.', chineseExample: '数学练习册每天要做两页。', chineseExample: 'Two pages of the math workbook are assigned each day.' },
-                  { chinese: '题目册 / 作业包 (tímù cè / zuòyè bāo)', english: 'Work Packet', description: '打包的作业和练习资料。A packet of exercises or assignments.', chineseExample: '老师发了一个周末作业包。', englishExample: 'The teacher gave out a weekend work packet.' },
-                  { chinese: '学材 (xuécái)', english: 'Teaching Materials', description: '泛指所有教学和学习中使用的材料。A general term for any materials used in teaching and learning.', chineseExample: '学校每年更新部分学材。', englishExample: 'The school updates some of the learning materials each year.' },
+                  { chinese: '题目册 / 作业包 (tímù cè / zuòyè bāo)', english: 'Work Packet', description: '打包的作业和练习资料。A packet of exercises or assignments.', chineseExample: '老师发了一个周末作业包。', chineseExample: 'The teacher gave out a weekend work packet.' },
+                  { chinese: '学材 (xuécái)', english: 'Teaching Materials', description: '泛指所有教学和学习中使用的材料。A general term for any materials used in teaching and learning.', chineseExample: '学校每年更新部分学材。', chineseExample: 'The school updates some of the learning materials each year.' },
                 ],
               },
               {
@@ -605,18 +623,18 @@
                   { chinese: '学期 (xuéqī)', english: 'Semester', description: '学校的教学时间单位，通常分为春季和秋季学期。Academic term usually divided into spring and fall semesters.', chineseExample: '这个学期我有五门课。', englishExample: 'I have five courses this semester.' },
                   { chinese: '教学 (jiàoxué)', english: 'Teaching / Instruction', description: '教师进行知识传授和学生学习的过程。The process of delivering knowledge and student learning.', chineseExample: '教学质量直接影响学生成绩。', englishExample: 'Teaching quality directly affects student performance.' },
                   { chinese: '教授 (jiàoshòu)', english: 'Professor', description: '高校教师的职称，也泛指大学讲师。A title for university-level teachers, commonly meaning university lecturer.', chineseExample: '她是大学的数学教授。', englishExample: 'She is a math professor at the university.' },
-                  { chinese: '备课 (bèikè)', english: 'Lesson Preparation', description: '教师为课堂教学做的计划和准备工作。Planning and preparation done by teachers before class.', chineseExample: '老师每天花时间备课。', englishExample: 'The teacher spends time preparing lessons every day.' },
+                  { chinese: '备课 (bèikè)', english: 'Lesson Preparation', description: '教师为课堂教学做的计划和准备工作。Planning and preparation done by teachers before class.', chineseExample: '老师每天花时间备课。', chineseExample: 'The teacher spends time preparing lessons every day.' },
                   { chinese: '课堂互动 (kètáng hùdòng)', english: 'Classroom Interaction', description: '学生和教师在课堂上的交流与互动。Communication and interaction between students and teachers during class.', chineseExample: '增强课堂互动能提高学习效果。', englishExample: 'Enhancing classroom interaction can improve learning outcomes.' },
                   { chinese: '学习 (xuéxí)', english: 'Study / Learn', description: '个人获取知识和技能的过程。The process of acquiring knowledge and skills.', chineseExample: '他每天花两个小时学习英语。', englishExample: 'He studies English for two hours every day.' },
                   { chinese: '学习计划 (xuéxí jìhuà)', english: 'Study Plan', description: '学生制定的学习安排和目标。A schedule or plan for student learning activities and goals.', chineseExample: '她制定了详细的学习计划。', englishExample: 'She made a detailed study plan.' },
                   { chinese: '学习目标 (xuéxí mùbiāo)', english: 'Learning Objectives', description: '学习过程中设定的具体目标和成果。Specific goals and outcomes set during learning.', chineseExample: '明确学习目标有助于提高效率。', englishExample: 'Clear learning objectives help improve efficiency.' },
                   { chinese: '学习方式 (xuéxí fāngshì)', english: 'Learning Methods', description: '学生采用的学习方法或策略。The methods or strategies students use to learn.', chineseExample: '不同的学习方式适合不同学生。', englishExample: 'Different learning methods suit different students.' },
-                  { chinese: '学习策略 (xuéxí cèlüè)', english: 'Learning Strategies', description: '学生用以提升学习效果的具体技巧和方法。Techniques and methods students use to enhance learning.', chineseExample: '教授教我们有效的学习策略。', englishExample: 'The professor taught us effective learning strategies.' },
+                  { chinese: '学习策略 (xuéxí cèlüè)', english: 'Learning Strategies', description: '学生用以提升学习效果的具体技巧和方法。Techniques and methods students use to enhance learning.', chineseExample: '教授教我们有效的学习策略。', chineseExample: 'The professor taught us effective learning strategies.' },
                   { chinese: '学习能力 (xuéxí nénglì)', english: 'Learning Ability', description: '个人理解、记忆和应用知识的能力。An individual’s capacity to comprehend, remember, and apply knowledge.', chineseExample: '学习能力强的学生更容易取得好成绩。', englishExample: 'Students with strong learning ability find it easier to succeed.' },
-                  { chinese: '学习小组 (xuéxí xiǎozǔ)', english: 'Study Group', description: '一群学生组成的学习团队，互相帮助。A group of students studying together to support each other.', chineseExample: '我们组成了一个学习小组。', englishExample: 'We formed a study group.' },
-                  { chinese: '托教 (tuōjiào)', english: 'After-school Care', description: '学校或机构提供的课后看护服务。Care services provided to students after school hours.', chineseExample: '她的孩子参加了托教项目。', englishExample: 'Her child attends an after-school care program.' },
-                  { chinese: '辅导 (fǔdǎo)', english: 'Tutoring', description: '针对某科目或技能的辅导帮助。Assistance given to improve skills or knowledge in specific subjects.', chineseExample: '他接受数学辅导以提高成绩。', englishExample: 'He receives tutoring in math to improve his grades.' },
-                  { chinese: '补习 (bǔxí)', english: 'Remedial / Cram Class', description: '针对学习薄弱部分进行的补充学习班。Classes aimed to help students improve weak areas.', chineseExample: '她参加了英语补习班。', englishExample: 'She attended an English remedial class.' },
+                  { chinese: '学习小组 (xuéxí xiǎozǔ)', english: 'Study Group', description: '一群学生组成的学习团队，互相帮助。A group of students studying together to support each other.', chineseExample: '我们组成了一个学习小组。', chineseExample: 'We formed a study group.' },
+                  { chinese: '托教 (tuōjiào)', english: 'After-school Care', description: '学校或机构提供的课后看护服务。Care services provided to students after school hours.', chineseExample: '她的孩子参加了托教项目。', chineseExample: 'Her child attends an after-school care program.' },
+                  { chinese: '辅导 (fǔdǎo)', english: 'Tutoring', description: '针对某科目或技能的辅导帮助。Assistance given to improve skills or knowledge in specific subjects.', chineseExample: '他接受数学辅导以提高成绩。', chineseExample: 'He receives tutoring in math to improve his grades.' },
+                  { chinese: '补习 (bǔxí)', english: 'Remedial / Cram Class', description: '针对学习薄弱部分进行的补充学习班。Classes aimed to help students improve weak areas.', chineseExample: '她参加了英语补习班。', chineseExample: 'She attended an English remedial class.' },
                   { chinese: '培训 (péixùn)', english: 'Training', description: '对教师或学生进行的专业技能或知识提升课程。Professional development courses for teachers or students.', chineseExample: '教师参加了教学方法培训。', chineseExample: 'Teachers attended training on teaching methods.' },
                 ],
               },
@@ -635,7 +653,7 @@
                   { chinese: '答题卡 (dátíkǎ)', english: 'Answer Sheet', description: '学生填写答案的卡片，常用于选择题。Sheet used to record answers, often for multiple-choice.', chineseExample: '请用答题卡填写答案。', englishExample: 'Please fill in your answers on the answer sheet.' },
                   { chinese: '成绩 (chéngjì)', english: 'Grade / Score', description: '学生考试或作业的评价结果。Results or marks from exams or assignments.', chineseExample: '他的数学成绩很优秀。', englishExample: 'His math grade is excellent.' },
                   { chinese: '放榜 (fàngbǎng)', english: 'Grade Release / Posting', description: '学校公布考试成绩的时间或过程。Time or process of releasing exam results.', chineseExample: '学校下周放榜。', englishExample: 'The school will release grades next week.' },
-                  { chinese: '留堂 / 留课 (liútáng / liúkè)', english: 'Detention', description: '对学生违反纪律的惩罚措施，需课后留校。A disciplinary measure requiring students to stay after school.', chineseExample: '他因迟到被留堂处罚。', englishExample: 'He was given detention for being late.' },
+                  { chinese: '留堂 / 留课 (liútáng / liúkè)', english: 'Detention', description: '对学生违反纪律的惩罚措施，需课后留校。A disciplinary measure requiring students to stay after school.', chineseExample: '他因迟到被留堂处罚。', chineseExample: 'He was given detention for being late.' },
                   { chinese: '纪律 (jìlǜ)', english: 'Discipline', description: '维持学校秩序和规范学生行为的规则。Rules to maintain order and regulate student behavior.', chineseExample: '学校非常重视学生的纪律。', englishExample: 'The school places great emphasis on student discipline.' },
                 ],
               },
@@ -645,7 +663,7 @@
                 number: '17.7',
                 terms: [
                   { chinese: '学业 (xuéyè)', english: 'Academic Studies', description: '学生的学习和课程进展。Students’ learning and coursework progress.', chineseExample: '他的学业表现很优秀。', englishExample: 'His academic studies are excellent.' },
-                  { chinese: '学术 (xuéshù)', english: 'Academic (adj./n.)', description: '与教育或研究相关的，或学术领域本身。Related to education or research, or the academic field itself.', chineseExample: '学术研究需要严谨态度。', englishExample: 'Academic research requires rigor.' },
+                  { chinese: '学术 (xuéshù)', english: 'Academic (adj./n.)', englishExample: 'Related to education or research, or the academic field itself.', chineseExample: '学术研究需要严谨态度。', englishExample: 'Academic research requires rigor.' },
                   { chinese: '学术界 (xuéshù jiè)', english: 'Academic Community', description: '从事学术研究和教育的人员群体。The community of scholars and educators.', chineseExample: '他在学术界有很高声誉。', englishExample: 'He has a high reputation in the academic community.' },
                   { chinese: '学术期刊 (xuéshù qīkān)', english: 'Academic Journal', description: '发表学术论文的专业刊物。Professional publications for academic papers.', chineseExample: '这篇文章发表在学术期刊上。', englishExample: 'This article was published in an academic journal.' },
                   { chinese: '学术发表 (xuéshù fābiǎo)', english: 'Academic Publishing', description: '学术成果的正式发表过程。The formal process of publishing academic work.', chineseExample: '他的研究刚刚完成学术发表。', englishExample: 'His research has just been academically published.' },
@@ -688,54 +706,116 @@
                   { chinese: '学术奖学金 (xuéshù jiǎngxuéjīn)', english: 'Fellowship', description: '多用于研究生及博士阶段。Often for graduate and doctoral students.', chineseExample: '她获得了博士学术奖学金。', englishExample: 'She was awarded a doctoral fellowship.' },
                   { chinese: '费用豁免 (fèiyòng huòmiǎn)', english: 'Fee Waiver', description: '免除部分或全部学费。Exemption from partial or full tuition fees.', chineseExample: '他获得了学费费用豁免。', englishExample: 'He received a tuition fee waiver.' },
                   { chinese: '学费 (xuéfèi)', english: 'Tuition', description: '教育费用。Cost of education.', chineseExample: '学费每年都有所上涨。', englishExample: 'Tuition increases every year.' },
-                  { chinese: '助学贷款 (zhùxué dàikuǎn)', english: 'Student Loan', description: '可还款型资助形式，较常见于高教阶段。Repayable financial aid, common in higher education.', chineseExample: '他通过助学贷款支付大学学费。', englishExample: 'He paid his college tuition through a student loan.' },
-                  { chinese: '勤工助学 (qínggōng zhùxué)', english: 'Work-Study', description: '通过在校工作获得资助，部分国家/高校常见。Financial aid earned by working on campus; common in some countries/universities.', chineseExample: '他参加了勤工助学项目。', englishExample: 'He participated in a work-study program.' },
-                  { chinese: '申请资格 (shēnqǐng zīgé)', english: 'Eligibility', description: '评估是否有资格申请资助。Assessment of eligibility to apply for aid.', chineseExample: '她符合奖学金申请资格。', englishExample: 'She meets the eligibility criteria for the scholarship.' },
-                  { chinese: '生活补贴 / 生活费资助 (shēnghuó bǔtiē / shēnghuó fèi zīzhù)', english: 'Living Stipend / Living Allowance', description: '非学费类支持，常见于博士阶段。Non-tuition support, often for doctoral students.', chineseExample: '博士生领取生活补贴。', englishExample: 'Doctoral students receive a living stipend.' }
+                  { chinese: '助学贷款 (zhùxué dàikuǎn)', english: 'Student Loan', description: '可还款型资助形式，较常见于高教阶段。Repayable financial aid, common in higher education.', chineseExample: '他通过助学贷款支付大学学费。', chineseExample: 'He paid his college tuition through a student loan.' },
+                  { chinese: '勤工助学 (qínggōng zhùxué)', english: 'Work-Study', description: '通过在校工作获得资助，部分国家/高校常见。Financial aid earned by working on campus; common in some countries/universities.', chineseExample: '他参加了勤工助学项目。', chineseExample: 'He participated in a work-study program.' },
+                  { chinese: '申请资格 (shēnqǐng zīgé)', english: 'Eligibility', description: '评估是否有资格申请资助。Assessment of eligibility to apply for aid.', chineseExample: '她符合奖学金申请资格。', chineseExample: 'She meets the eligibility criteria for the scholarship.' },
+                  { chinese: '生活补贴 / 生活费资助 (shēnghuó bǔtiē / shēnghuó fèi zīzhù)', english: 'Living Stipend / Living Allowance', description: '非学费类支持，常见于博士阶段。Non-tuition support, often for doctoral students.', chineseExample: '博士生领取生活补贴。', chineseExample: 'Doctoral students receive a living stipend.' }
                 ]
               }
             ]
           }
         ];
 
+        // PlayAudioButton component for text-to-speech
+        const PlayAudioButton = ({ text, lang }) => {
+          const [isSpeaking, setIsSpeaking] = React.useState(false);
+
+          const speakText = () => {
+            if (!text || isSpeaking) return;
+
+            setIsSpeaking(true);
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = lang; // Set language based on prop (e.g., 'zh-CN' for Chinese, 'en-US' for English)
+
+            utterance.onend = () => {
+              setIsSpeaking(false);
+            };
+
+            utterance.onerror = (event) => {
+              console.error('Speech synthesis error:', event.error);
+              setIsSpeaking(false);
+            };
+
+            window.speechSynthesis.speak(utterance);
+          };
+
+          return (
+            <button
+              onClick={speakText}
+              disabled={isSpeaking || !window.speechSynthesis}
+              className="play-button"
+              title={isSpeaking ? "正在播放..." : "播放"}
+            >
+              {isSpeaking ? (
+                <svg className="animate-pulse h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                </svg>
+              )}
+            </button>
+          );
+        };
+
+
         // VocabularyCard component to display a single vocabulary entry
         const VocabularyCard = ({ term }) => {
+          // Function to strip content within parentheses (like pinyin)
+          const stripPinyin = (text) => {
+            if (typeof text !== 'string') return text;
+            return text.replace(/\s*\(.*?\)/g, '').trim();
+          };
+
           // Apply col-span-full if term.fullWidth is true, otherwise default to auto-sizing in the grid
           const cardClassName = `bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 text-gray-800 ${term.fullWidth ? 'col-span-full' : ''}`;
 
           return (
             <div className={cardClassName}>
-              <h3 className="text-xl font-semibold text-blue-700 mb-2">{term.chinese}</h3>
-              <p className="text-gray-700 text-lg mb-2">{term.english}</p>
+              <h3 className="text-xl font-semibold text-blue-700 mb-2 flex items-center">
+                {term.chinese}
+                {term.chinese && <PlayAudioButton text={stripPinyin(term.chinese)} lang="zh-CN" />}
+              </h3>
+              <p className="text-gray-700 text-lg mb-2 flex items-center">
+                {term.english}
+                {term.english && <PlayAudioButton text={term.english} lang="en-US" />}
+              </p>
               {/* Conditionally render description based on isHtmlDescription flag */}
               {term.isHtmlDescription ? (
                 <div className="text-gray-600 text-sm mb-2" dangerouslySetInnerHTML={{ __html: term.description }} />
               ) : (
                 term.description && (
-                  <p className="text-gray-600 text-sm mb-2">
+                  <p className="text-gray-600 text-sm mb-2 flex items-center">
                     <span className="font-medium">说明:</span> {term.description}
+                    <PlayAudioButton text={term.description} lang="zh-CN" />
                   </p>
                 )
               )}
               {term.englishDescription && (
-                <p className="text-gray-600 text-sm mb-2">
+                <p className="text-gray-600 text-sm mb-2 flex items-center">
                   <span className="font-medium">Description:</span> {term.englishDescription}
+                  <PlayAudioButton text={term.englishDescription} lang="en-US" />
                 </p>
               )}
               {term.ageRange && (
-                <p className="text-gray-600 text-sm mb-1">
+                <p className="text-gray-600 text-sm mb-1 flex items-center">
                   <span className="font-medium">年龄范围:</span> {term.ageRange}
+                  {term.ageRange && <PlayAudioButton text={term.ageRange} lang="zh-CN" />}
                   {term.englishAgeRange && ` (${term.englishAgeRange})`}
+                  {term.englishAgeRange && <PlayAudioButton text={term.englishAgeRange} lang="en-US" />}
                 </p>
               )}
               {term.chineseExample && (
-                <p className="text-gray-600 text-sm mb-1">
+                <p className="text-gray-600 text-sm mb-1 flex items-center">
                   <span className="font-medium">中文示例:</span> {term.chineseExample}
+                  <PlayAudioButton text={term.chineseExample} lang="zh-CN" />
                 </p>
               )}
               {term.englishExample && (
-                <p className="text-gray-600 text-sm">
+                <p className="text-gray-600 text-sm flex items-center">
                   <span className="font-medium">英文示例:</span> {term.englishExample}
+                  <PlayAudioButton text={term.englishExample} lang="en-US" />
                 </p>
               )}
             </div>
@@ -998,10 +1078,5 @@
 
         ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
-<div class="text-center py-6 text-amber-900">
-            <p class="mb-2">🧋 我在这期间花了不少功夫收集并整理这些词汇。如果这个应用对你有帮助，欢迎请我喝杯奶茶～</p>
-            <p class="mb-2">I've spent a great deal of time finding and organizing this vocabulary... If you found this helpful, feel free to treat me to a milk tea!</p>
-            <p>💌 PayPal: monokumazx@gmail.com</p>
-        </div>
-    </body>
+</body>
 </html>
