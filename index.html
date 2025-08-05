@@ -58,6 +58,9 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
+        // Global variable to keep track of the currently playing audio
+        let currentAudio = null;
+
         // Helper functions for TTS audio playback
         const base64ToArrayBuffer = (base64) => {
             const binaryString = window.atob(base64);
@@ -111,6 +114,13 @@
         };
 
         const playAudio = async (text, languageCode = 'zh-CN') => {
+            // Stop any currently playing audio
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+                currentAudio = null;
+            }
+
             const payload = {
                 contents: [{
                     parts: [{ text: text }]
@@ -157,6 +167,10 @@
 
                     const audio = new Audio(audioUrl);
                     audio.play();
+                    currentAudio = audio; // Set the current audio
+                    audio.onended = () => { // Clear currentAudio when playback finishes
+                        currentAudio = null;
+                    };
                 } else {
                     console.error("Audio data or mime type missing/invalid in TTS response:", result);
                 }
