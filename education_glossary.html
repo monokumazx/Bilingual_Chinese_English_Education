@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>教育词汇大齐 (Educational Vocabulary Collection)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- React CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel CDN for JSX transformation in browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for sidebar */
+        aside::-webkit-scrollbar {
+            width: 8px;
+        }
+        aside::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        aside::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        aside::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        /* Style for the play button */
+        .play-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 8px;
+            vertical-align: middle;
+            color: #4A90E2; /* Blue color for the icon */
+            transition: color 0.2s ease-in-out;
+        }
+        .play-button:hover {
+            color: #2D67B2; /* Darker blue on hover */
+        }
+        .play-button:disabled {
+            color: #A0AEC0; /* Gray out when disabled */
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-900 font-sans text-gray-200">
+    <div id="root" class="flex flex-col md:flex-row min-h-screen"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // Global variable to keep track of the currently playing audio
+        let currentAudio = null;
+
+        // Helper functions for TTS audio playback
+        const base64ToArrayBuffer = (base64) => {
+            const binaryString = window.atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        };
+
+        const pcmToWav = (pcm16, sampleRate) => {
+            const numChannels = 1;
+            const bytesPerSample = 2; // 16-bit PCM
+            const blockAlign = numChannels * bytesPerSample;
+            const byteRate = sampleRate * blockAlign;
+
+            const wavBuffer = new ArrayBuffer(44 + pcm16.byteLength);
+            const view = new DataView(wavBuffer);
+
+            // RIFF chunk descriptor
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + pcm16.byteLength, true); // ChunkSize
+            writeString(view, 8, 'WAVE');
+            // FMT sub-chunk
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true); // Subchunk1Size
+            view.setUint16(20, 1, true); // AudioFormat (1 = PCM)
+            view.setUint16(22, numChannels, true); // NumChannels
+            view.setUint32(24, sampleRate, true); // SampleRate
+            view.setUint32(28, byteRate, true); // ByteRate
+            view.setUint16(32, blockAlign, true); // BlockAlign
+            view.setUint16(34, 16, true); // BitsPerSample
+            // DATA sub-chunk
+            writeString(view, 36, 'data');
+            view.setUint32(40, pcm16.byteLength, true); // Subchunk2Size
+
+            // Write PCM data
+            const pcmBytes = new Uint8Array(pcm16.buffer);
+            for (let i = 0; i < pcmBytes.length; i++) {
+                view.setUint8(44 + i, pcmBytes[i]);
+            }
+
+            return new Blob([view], { type: 'audio/wav' });
+        };
+
+        const writeString = (view, offset, string) => {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        };
+
+        const playAudio = async (text, languageCode = 'zh-CN') => {
+            // Stop any currently playing audio
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+                currentAudio = null;
+            }
+
+            const payload = {
+                contents: [{
+                    parts: [{ text: text }]
+                }],
+                generationConfig: {
+                    responseModalities: ["AUDIO"],
+                    speechConfig: {
+                        voiceConfig: {
+                            prebuiltVoiceConfig: { voiceName: "Kore" } // Using Kore voice for consistency
+                        },
+                        languageCode: languageCode // Set language code for TTS
+                    }
+                },
+                model: "gemini-2.5-flash-preview-tts" // Corrected model name for TTS
+            };
+            const apiKey = ""; // Leave as-is, Canvas will provide
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`; // Corrected model name in URL
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const part = result?.candidates?.[0]?.content?.parts?.[0];
+                const audioData = part?.inlineData?.data;
+                const mimeType = part?.inlineData?.mimeType;
+
+                if (audioData && mimeType && mimeType.startsWith("audio/")) {
+                    // Extract sample rate from mimeType, e.g., "audio/L16;rate=16000"
+                    const sampleRateMatch = mimeType.match(/rate=(\d+)/);
+                    const sampleRate = sampleRateMatch ? parseInt(sampleRateMatch[1], 10) : 16000; // Default to 16000 if not found
+
+                    const pcmData = base64ToArrayBuffer(audioData);
+                    const pcm16 = new Int16Array(pcmData); // API returns signed PCM16 audio data.
+                    const wavBlob = pcmToWav(pcm16, sampleRate);
+                    const audioUrl = URL.createObjectURL(wavBlob);
+
+                    const audio = new Audio(audioUrl);
+                    audio.play();
+                    currentAudio = audio; // Set the current audio
+                    audio.onended = () => { // Clear currentAudio when playback finishes
+                        currentAudio = null;
+                    };
+                } else {
+                    console.error("Audio data or mime type missing/invalid in TTS response:", result);
+                }
+            } catch (error) {
+                console.error("Error playing audio:", error);
+            }
+        };
+
+
+        // Data extracted from the provided document, restructured with correct numbering and hierarchy
+        const vocabularyData = [
+          {
+            category: '教育阶段 Educational Levels',
+            id: 'educational-levels',
+            number: '1',
+            note: '一般来说，学生的年龄可以通过年级加五来判断。 例如： 三年级的学生一般是8岁（3+5=8）； 在幼儿园的学生一般是5-6岁（5+0=5）。',
+            terms: [
+              { chinese: '早期教育', english: 'Early Childhood Education', description: '年龄 0 - 6' },
+              { chinese: '早教', english: 'Early Education', description: '0 - 3' },
+              { chinese: '托儿所', english: 'Nursery', description: '六周 - 3岁', englishDescription: '6 Weeks - Age 3' },
+              { chinese: '日托班', english: 'Daycare', description: '也可以被称为“日托所”，但“日托班”更强调儿童教育。', englishDescription: 'It can also be referred to as a \'daycare center,\' but \'daycare class\' places more emphasis on children\'s education.' },
+              { chinese: '幼教', english: 'Early Childhood Education', description: '3 - 6' },
+              { chinese: '幼儿园', english: 'Kindergarten', description: '3 - 6, 包含K3、K4、K5年级，适应集体生活，入学前准备。', englishDescription: 'It includes K3, K4, and K5 grades, helping children adapt to group life and prepare for school. Kindergarten is sometimes considered part of Preschool.' },
+              { chinese: 'K3', english: 'Kindergarten K3', description: '3 - 4, 幼儿园第一年，初步社交技能。', englishDescription: 'First year of kindergarten, focusing on basic social skills.' },
+              { chinese: 'K4', english: 'Kindergarten K4', description: '4 - 5, 幼儿园第二年，发展基础认知与社交能力。', englishDescription: 'Second year of kindergarten, developing foundational cognitive and social abilities.' },
+              { chinese: 'K-12 Education (基础教育)', english: '年龄 5-18' },
+              { chinese: '学前班（Preschool）', english: '学前教育（Preschool Education）', description: '年龄 （Age）5 - 6' },
+              { chinese: 'K5', english: 'Kindergarten K5 / Pre-K', description: '5 - 6, 入小学前的学术准备。', englishDescription: 'Academic preparation before entering primary school.' },
+              { chinese: '小学', english: 'Primary School', description: '6 - 12, 6个年级，注重基础能力与学习习惯。', englishDescription: 'Six grades, focusing on fundamental skills and study habits.' },
+              { chinese: '中学', english: 'Middle School', description: '12 - 14, 包含初中阶段，逐步深入学术知识。', englishDescription: 'Includes the middle school phase, with progressively deeper academic learning.' },
+              { chinese: '高中', english: 'High School', description: '14 - 18' },
+              { chinese: '大学', english: 'University', description: '18以上 / 18 Above, 本科和研究生教育。', englishDescription: 'Undergraduate and graduate education.' },
+              { chinese: '学院', english: 'College', description: '18以上 / 18 Above, 大学的学部或独立专科教育机构。学院（College）是大学（University）内部的一个学部或系别，或者专注于特定学科领域独立教育机构。例如，亨特学院（Hunter College）是纽约市立大学（CUNY）体系中的一所成员学院。', englishDescription: 'Colleges or Independent Specialized Educational Institutions within a University. A college (学院) is either a faculty or department within a university (大学), or an independent educational institution focused on a specific academic field. E.g., Hunter College is one of the constituent colleges of the City University of New York (CUNY) system.' },
+              { chinese: '学园', english: 'Academy', description: '依入学时间 / Based on enrollment, 专注特定领域或艺术的教育机构。', englishDescription: 'A division within a university or an independent institution offering specialized education.' },
+              { chinese: '研究生院', english: 'Graduate School', description: '根据入学时间 / Age based on enrollment time' },
+              { chinese: '专科院校', english: 'Vocational / Technical Academy' },
+              { chinese: '专业学院', english: 'Professional School' },
+              { chinese: '社区学院', english: 'Community College' },
+            ],
+          },
+          {
+            category: '课程量词 （Measure Words）',
+            id: 'measure-words',
+            number: '2',
+            terms: [
+              { chinese: '门 (mén)', english: 'Subject', description: '指整个学科或课程，是学习的整体内容。', englishDescription: 'Refers to an entire subject or course, the overall academic discipline。', chineseExample: '我这学期选了三门课程。', englishExample: 'I chose three courses this semester.' },
+              { chinese: '节 (jié)', english: 'Class period', description: '课程中的时间段或课时，是上课的分段。', englishDescription: 'Refers to a specific time segment or lesson period within a class schedule。', chineseExample: '今天我们有两节数学课。', englishExample: 'Today we have two math class periods.' },
+              { chinese: '堂 (táng)', english: 'Session', description: '课程或讲座的次数。', englishDescription: 'Number of classes or lectures in a session; can be segmented。', chineseExample: '他每天上一堂英语课。', englishExample: 'He attends one English class every day.' },
+              // New section added here
+              {
+                chinese: '差异化 （Differentiating） 门、节、堂',
+                english: 'Differentiating Men, Jie, Tang',
+                description: `
+                  <p class="mb-2"><strong>Whole (堂) vs Part (节)</strong></p>
+                  <p class="mb-2"><strong>中文范例:</strong> “请问两节(驾驶)课的费用是多少？什么？你们把两节组合成一堂课了？”</p>
+                  <p class="mb-4"><strong>English example:</strong> "May I ask how much the cost is for two (periods of driving) lessons? What? You combined two classes into one session?"</p>
+                  <p class="text-sm text-gray-500 mb-4">- (This is a real-life example that I noticed when going into driving school. The use between 堂 and 节 became blurry because of the complexity of the service they are providing.)</p>
+                  <p class="text-sm text-gray-500 mb-4">source: <a href="https://chinese.stackexchange.com/questions/59104/difference-between-the-measure-words-%E8%8A%82-%E5%A0%82-and-%E9%97%A8" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">https://chinese.stackexchange.com/questions/59104/difference-between-the-measure-words-%E8%8A%82-%E5%A0%82-and-%E9%97%A8</a></p>
+                  <p class="mb-2"><strong>Entirety (门) vs Segment (节)</strong></p>
+                  <p class="mb-2"><strong>中文范例:</strong> “今天我有两门课：数学和英语。其中，第一节是数学课，第二节是英语课。”</p>
+                  <p class="mb-4"><strong>English example:</strong> "Today, I have two subjects: math and English. The first period is math class, and the second period is English class.</p>
+                  <p class="mb-2"><strong>中文范例:</strong> “今天我有两门课，其中一节是和我的朋友一起上的。”</p>
+                  <p class="mb-4"><strong>English example:</strong> "Today, I have two classes, one of which I am taking a period with my friend."</p>
+                  <p class="text-sm text-gray-500 mb-4">- In this second example, the first part of the sentence "我有两门课" can be interchangeable with "我有两节课" as the number of classes (门) and the segments of the class in your schedule (节) both works.</p>
+                  <p class="mb-2"><strong>中文范例:</strong> “下学期这门美术课就一节。而且是梅老师教的。”</p>
+                  <p class="mb-4"><strong>English example:</strong> “There is only one period of art for this course next semester. It is taught by Mr. Mei.”</p>
+                  <p class="mb-2"><strong>中文范例:</strong> “我以前上过一（门/节）关于教导迟缓学生如何阅读的课。”</p>
+                  <p class="mb-4"><strong>English example:</strong> "I took a (course/period) about teaching delayed students how to read."</p>
+                  <p class="text-sm font-bold text-red-600 mb-2">***- This is an IMPORTANT example, as it shows how based on the context (,which measure word you use,) it will affect the whole sentence.）***</p>
+                `,
+                isHtmlDescription: true, // Custom flag to indicate HTML content
+                fullWidth: true // New flag to make this card span full width
+              },
+            ],
+          },
+          {
+            category: '📙 学校职位 (School Positions)',
+            id: 'school-positions',
+            number: '3',
+            terms: [
+              { chinese: '学生 (xué shēng)', english: 'Student', description: '在学校或其他教育机构学习的人。', englishDescription: 'A person who is studying at a school or other educational institution。', chineseExample: '他是一名小学学生。', englishExample: 'He is an elementary school student。' },
+              { chinese: '教师 (jiào shī)', english: 'Teacher', description: '在学校或其他教育环境中教授的人员。', englishDescription: 'A person who teaches in a school or other educational setting。', chineseExample: '她是一位英语教师。', englishExample: 'She is an English teacher。' },
+              { chinese: '班主任 (主班老师) (bān zhǔ rèn)', english: 'Homeroom Teacher / Class Teacher', description: '负责管理班级及处理与班级相关的行政事务的教师。', englishDescription: 'The teacher responsible for managing a class and handling administrative tasks related to the class。', chineseExample: '班主任每天负责点名和与家长沟通。', englishExample: 'The homeroom teacher handles daily attendance and parent communication。' },
+              { chinese: '助理老师 / 助教 / 配班老师 / 副班主任 (zhù lì lǎo shī / zhù jiào)', english: 'Assistant Teacher / Teaching Assistant', description: '联合教学中协助主班教师的老师，协助教学与行政事务。', englishDescription: 'A teacher who assists the primary teacher with instructional and administrative tasks, often in co-teaching settings。', chineseExample: '助教帮助主班老师备课。', englishExample: 'The TA assists the lead teacher with lesson planning。' },
+              { chinese: '特殊教育老师 (tè shū jiào yù lǎo shī)', english: 'Special Education Teacher', description: '针对有特殊学习需求的学生进行教学。', englishDescription: 'Teaches students with special learning needs。', chineseExample: '特教老师为学生制定个别化学习计划。', englishExample: 'The special education teacher creates individualized learning plans。' },
+              { chinese: '助教 (教辅人员) (zhù jiào / jiào fǔ rén yuán)', english: 'Para (Paraprofessional)', description: 'Paraprofessional (教辅人员) 指协助教师的支持人员，常承担专门角色，如全天候为某学生提供支持。该词含义广泛，需具体说明职责。', englishDescription: 'Paraprofessional (教辅人员) refers to support staff who assist teachers, often in specialized roles such as providing full-day support to a student. The term is broad and requires clarification of specific duties. 教辅人员简称“助教”（para）。', chineseExample: '这位教辅人员全天陪伴一名特殊需要学生。', englishExample: 'The para stays with a student who needs support all day。' },
+              { chinese: '实习老师 (shí xí lǎo shī)', english: 'Student Teacher', description: '正在接受培训、进行实习的准教师。', englishDescription: 'A prospective teacher undergoing training and practicum。', chineseExample: '实习老师正在参加教学实习。', englishExample: 'The student teacher is participating in a teaching practicum。' },
+              { chinese: '校长 (xiào zhǎng)', english: 'Principal / Headmaster / Head Teacher', description: '学校的首席行政官，负责学校整体管理与领导。', englishDescription: 'The chief administrator of a school, overseeing overall school operations.Some people translate \'班主任\' as \'head teacher,\' but it\'s not quite accurate.\'Head teacher\' in English is another term for \'principal,\' which means \'校长.\' While \'班主任\' can be translate as homeroom teacher. Mistranslating \'班主任\' as head teacher is probably a matter of convention.有些人把“班主任”翻译为“head teacher”，但这并不完全准确。在英语中，“Head teacher”是“principal”的另一种说法，意思是 “校长”。而""班主任""可以翻译为""homeroom teacher""。把“班主任\'”错译为“head teacher”可能是一个约定俗成。', chineseExample: '校长主持了毕业典礼。', englishExample: 'The principal presided over the graduation ceremony。' },
+              { chinese: '院长 / 系主任 / 教务长 (yuàn zhǎng / xì zhǔ rèn / jiào wù zhǎng)', english: 'Dean', description: '学院或大学部门的负责人。', englishDescription: 'The head of a college or university department。', chineseExample: '––', englishExample: '––' },
+              { chinese: '董事长 (dǒng shì zhǎng)', english: 'Chairman', description: '理事会或委员会的领导者。', englishDescription: 'The leader of a governing board or committee。', chineseExample: '––', englishExample: '––' },
+              { chinese: '督导 (教学督导) (dū dǎo)', english: 'Supervisor (Educational Supervisor)', description: '负责教学质量监督与指导的人员。', englishDescription: 'Person who oversees and evaluates teaching quality。', chineseExample: '––', englishExample: '––' },
+              { chinese: '导师 (dǎo shī)', english: 'Tutor / Mentor', description: '指导学生学习或职业发展的教师。', englishDescription: 'A person who guides a student in academics or personal development。', chineseExample: '––', englishExample: '––' },
+              { chinese: '辅导人／辅导员 (fǔ dǎo yuán)', english: 'Counselor / Student Advisor', description: '提供学生心理、学习或生活指导的人员。', englishDescription: 'Provides students with academic, emotional, or life guidance。', chineseExample: '––', englishExample: '––' },
+              { chinese: '系主任 (xì zhǔ rèn)', english: 'Department Chairperson', description: '大学或学院内一个学术部门的负责人。', englishDescription: 'Head of an academic department within a college or university。', chineseExample: '––', englishExample: '––' },
+              { chinese: '主管 (zhǔ guǎn)', english: 'Director / Administrator', description: '负责行政或部门管理工作的人员。', englishDescription: 'A manager or administrator in a school or department。', chineseExample: '––', englishExample: '––' },
+              { chinese: '行政助理 (xíng zhèng zhù lì)', english: 'Administrative Assistant', description: '协助学校行政事务的职员。', englishDescription: 'Staff member who assists with school administrative tasks。', chineseExample: '––', englishExample: '––' },
+              { chinese: '校医 (学校护士) (xiào yī)', english: 'School Nurse', description: '在学校提供医疗服务的专业人员。', englishDescription: 'Provides health care services in schools。', chineseExample: '––', englishExample: '––' },
+              { chinese: '心理辅导员 (xīn lǐ fǔ dǎo yuán)', english: '(School) Psychologist', description: '提供心理健康评估与咨询的专业人员。', englishDescription: 'Provides mental health support and psychological assessment。', chineseExample: '––', englishExample: '––' },
+              { chinese: '图书管理员 (tú shū guǎn lǐ yuán)', english: 'Librarian', description: '负责管理图书馆资源与借阅的人员。', englishDescription: 'Manages library resources and student access。', chineseExample: '––', englishExample: '––' },
+              { chinese: '财务人员 (cái wù rén yuán)', english: 'Accountant / Bursar', description: '管理学校财务事务的人员。', englishDescription: 'Handles school financial matters。', chineseExample: '––', englishExample: '––' },
+              { chinese: 'IT技术支持 (IT jì shù zhī chí)', english: 'IT Support Technician', description: '提供学校技术系统维护与支持。', englishDescription: 'Maintains and supports school IT systems。', chineseExample: '––', englishExample: '––' },
+              { chinese: '食堂工作人员 (shí táng gōng zuò rén yuán)', english: 'Cafeteria Staff', description: '负责食堂餐饮准备与服务的人员。', englishDescription: 'Responsible for food preparation and service in the cafeteria。', chineseExample: '––', englishExample: '––' },
+              { chinese: '清洁工 (qīng jié gōng)', english: 'Janitor / Custodian', description: '负责校园清洁与维护的人员。', englishDescription: 'Responsible for cleaning and maintaining school facilities。', chineseExample: '––', englishExample: '––' },
+              { chinese: '保安 (bǎo ān)', english: 'Security Guard', description: '负责学校安全的人员。', englishDescription: 'Responsible for ensuring the safety and security of the school。', chineseExample: '––', englishExample: '––' },
+              { chinese: '课外活动负责人 (kè wài huó dòng fù zé rén)', english: 'Extracurricular Coordinator', description: '负责组织课外活动的教师或职员。', englishDescription: 'Coordinates extracurricular programs in K–12 schools。', chineseExample: '––', englishExample: '––' },
+              { chinese: '学生活动中心主任 (xué shēng huó dòng zhōng xīn zhǔ rèn)', english: 'Director of Student Activities (University)', description: '大学中负责学生活动和事务的高级职员。', englishDescription: 'Senior university staff responsible for student life and events。', chineseExample: '––', englishExample: '––' },
+            ],
+          },
+          {
+            category: '教育结构与分类体系 (Educational Structures and Classifications)',
+            id: 'educational-structures-parent',
+            number: '4',
+            children: [
+              {
+                category: '教育类型分类表 (Classification of Types of Education)',
+                id: '3-1-classification-of-education',
+                number: '4.1',
+                terms: [
+                  { chinese: '普通教育 (pǔ tōng jiào yù)', english: 'General Education', description: '正规的基础教育体系，含小学、初中、高中。', englishDescription: 'A formal basic education system, including primary, middle, and high school levels。', chineseExample: '他接受的是普通教育体系，从小学一直读到高中。', englishExample: 'He received general education from primary through high school。' },
+                  { chinese: '高等教育 (gāo děng jiào yù)', english: 'Higher Education', description: '大学、研究生等学历教育。', englishDescription: 'Education at the college, university, or graduate level。', chineseExample: '她在一所知名大学接受高等教育。', englishExample: 'She received her higher education at a prestigious university。' },
+                  { chinese: '学前教育 (xué qián jiào yù)', english: 'Early Childhood Education / Preschool Education', description: '幼儿园阶段的教育。', englishDescription: 'Education provided at the preschool or kindergarten level。', chineseExample: '学前教育对儿童的早期发展非常重要。', englishExample: 'Preschool education is crucial for early childhood development。' },
+                  { chinese: '特殊教育 (tè shū jiào yù)', english: 'Special Education', description: '面向有特殊需要的学生，如身心障碍。', englishDescription: 'Education designed for students with special needs, such as physical or mental disabilities。', chineseExample: '特殊教育课程帮助学生克服学习障碍。', englishExample: 'Special education programs help students overcome learning difficulties。' },
+                  { chinese: '托教 / 课后托管 (tuō jiào / kè hòu tuō guǎn)', english: 'After-school Care / Extended-day Program', description: '放学后提供照看和学习支持的托管服务。', englishDescription: 'Care and academic support provided after regular school hours。', chineseExample: '工作日她把孩子送去课后托管。', englishExample: 'On weekdays, she sends her child to an after-school care program。' },
+                ],
+              },
+              {
+                category: '班级种类 (Types of Classes)',
+                id: 'types-of-classes',
+                number: '4.2',
+                terms: [
+                  { chinese: '补习班 (bǔ xí bān)', english: 'Tutoring Class', description: '提供额外学科辅导，帮助学生在特定学科上提高，尤其适用于学习有困难的学生。', englishDescription: 'Extra academic support to help students improve in specific subjects, especially struggling with certain areas of study。', chineseExample: '他报名了英语补习班来提高成绩。', englishExample: 'He enrolled in an English tutoring class to improve his grades。' },
+                  { chinese: '辅导班 (fǔ dǎo bān)', english: 'Remedial Class', description: '为需要补上基础知识或克服学习困难的学生开设的课程。', englishDescription: 'Aimed at students who need help to catch up with basic concepts or overcome learning difficulties。', chineseExample: '数学辅导班专为基础薄弱的学生开设。', englishExample: 'The math remedial class is designed for students with weak foundations。' },
+                  { chinese: '兴趣班 (xìng qù bān)', english: 'Interest Class', description: '专注于爱好与兴趣的课程，如美术、音乐、体育或编程，不直接属于学术科目。', englishDescription: 'Classes focused on hobbies and interests, such as art, music, sports, or coding, not directly related to academic subjects。', chineseExample: '孩子参加了周末的美术兴趣班。', englishExample: 'The child joined a weekend art interest class。' },
+                  { chinese: '强化班 (qiáng huà bān)', english: 'Enrichment Class', description: '为能力较强的学生设计，提供更具挑战性的内容以提升其技能。', englishDescription: 'Designed for students with advanced abilities, offering more challenging content to enhance their skills。', chineseExample: '他被选入奥数强化班。', englishExample: 'He was selected for the math enrichment class。' },
+                  { chinese: '特长班 (tè cháng bān)', english: 'Specialized Class', description: '为具有音乐、体育或美术等特长的学生提供专门培训的课程。', englishDescription: 'Tailored for students with specific talents in areas like music, sports, or art, offering specialized training in these fields。', chineseExample: '学校为足球特长生开设了专门的特长班。', englishExample: 'The school opened a specialized class for students talented in soccer。' },
+                  { chinese: '预科班 (yù kē bān)', english: 'Preparatory Class', description: '为升学做准备的课程，注重基础知识和学习技能的提升。', englishDescription: 'A class to prepare students for higher education, such as university or graduate school, focusing on foundational knowledge or study skills。', chineseExample: '他正在上大学预科班，准备申请海外学校。', englishExample: 'He is taking a preparatory class to apply to overseas universities。' },
+                  { chinese: '实验班 (shí yàn bān)', english: 'Experimental Class', description: '用于试验新教学方法或教材的课程，通常采用创新教育模式。', englishDescription: 'A class designed to test new teaching methods or materials, often focusing on innovative educational approaches。', chineseExample: '学校设立了AI教学实验班。', englishExample: 'The school launched an experimental class for AI-assisted teaching。' },
+                  { chinese: '双语班 (shuāng yǔ bān)', english: 'Bilingual Class', description: '用两种语言授课的课程，通常结合母语和外语，提升学生的语言能力。', englishDescription: 'Classes taught in two languages, usually a combination of the native language (e.g., Chinese) and a foreign language, to enhance language skills。', chineseExample: '她就读于一所中英双语班。', englishExample: 'She studies in a Chinese-English bilingual class。' },
+                  { chinese: '暑期班 (shǔ qí bān)', english: 'Summer Class', description: '在暑假期间开设的课程，提供学术提升或新技能学习的机会。', englishDescription: 'Courses held during the summer break, offering opportunities for academic improvement or learning new skills。', chineseExample: '暑期班提供英语写作和编程课程。', englishExample: 'The summer class offers English writing and programming。' },
+                  { chinese: '在线班 (zài xiàn bān)', english: 'Online Class', description: '通过互联网进行的课程，学生可使用数字设备随时随地学习。', englishDescription: 'Classes conducted over the internet, allowing students to learn from anywhere using digital devices。', chineseExample: '疫情期间，学生们通过在线班继续学习。', englishExample: 'During the pandemic, students continued learning through online classes。' },
+                  {
+                    chinese: '双向式双语教育 (Dual Language Education)',
+                    english: 'Dual Language Education',
+                    description: '一种旨在培养学生双语能力的教学方法。它通常用学生的母语和目标语言来教授学术内容和核心科目。该模式的主要目标是让学生在两种语言上都达到高水平的流利度和读写能力。',
+                    englishDescription: 'An instructional approach that aims to develop proficiency in two languages. It typically involves teaching academic content and core subjects in both the students\' native language and the target language. One of the main goals of this model is for students to achieve bilingualism and biliteracy with high levels of proficiency in both languages。',
+                  },
+                  {
+                    chinese: '双语沉浸式教学 (Dual Language Immersion Education / Program)',
+                    english: 'Dual Language Immersion Education / Program',
+                    description: '一种教育模式，旨在让母语非英语的学生和母语为英语的学生共同学习彼此的语言和文化。该项目为母语为英语的学生和母语为另一种语言的学生提供综合的语言学习和学术指导。其目标是实现高学术成就、掌握第一和第二语言，以及跨文化理解。',
+                    englishDescription: 'An educational model designed to allow non-English native speakers and English native speakers to learn each other\'s languages and cultures together. This program provides integrated language learning and academic instruction for native speakers of English and native speakers of another language. Its goals are high academic achievement, first and second language proficiency, and cross-cultural understanding。',
+                  },
+                  {
+                    chinese: '全纳教育 (Quán Nà Jiào Yù)',
+                    english: 'Inclusive Education',
+                    description: '旨在让所有学生，无论其个人需求或差异如何，都能在同一学校和教室中共同学习的教育理念。',
+                    englishDescription: 'An educational philosophy that aims to educate all students together in the same schools and classrooms, regardless of their individual needs or differences。',
+                  },
+                ],
+              },
+              {
+                category: '学校类型 (Types of Schools)',
+                id: 'types-of-schools',
+                number: '4.3',
+                terms: [
+                  { chinese: '普校 (普通学校) (pǔ xiào)', english: 'General School', description: '泛指提供普通基础教育的学校，包括小学、初中和高中。', englishDescription: 'General schools refer to institutions that provide basic education, including primary, middle, and high schools。', chineseExample: '她在一所普通学校上学。', englishExample: 'She studies at a general school。' },
+                  { chinese: '特校 (特殊学校) (tè xiào)', english: 'Special Education School', description: '专门为身心障碍或特殊需求学生设立的学校。', englishDescription: 'Schools specifically established for students with physical, mental, or special needs。', chineseExample: '这所特校为听障学生提供专业课程。', englishExample: 'This special education school offers specialized courses for hearing-impaired students。' },
+                  { chinese: '特殊高中 (tè shū gāo zhōng)', english: 'Specialized High School', description: '以某类学科或才能为重点的高中，如理科高中、艺术高中等。', englishDescription: 'High schools focusing on particular disciplines or talents, such as science or arts。', chineseExample: '他考入了一所科技类特殊高中。', englishExample: 'He was admitted to a specialized science high school。' },
+                  { chinese: '技校 (职业学校) (jì xiào)', english: 'Vocational School', description: '以职业技能为导向的中等或高等教育机构。', englishDescription: 'Institutions that offer skill-based education for specific trades or careers。', chineseExample: '他在技校学习电工技能。', englishExample: 'He studies electrical work at a vocational school。' },
+                  { chinese: '常春藤联盟学校 (cháng chūn téng lián méng xué xiào)', english: 'Ivy League School', description: '美国常春藤联盟的八所精英大学之一。', englishDescription: 'One of the eight elite universities in the Ivy League in the United States。', chineseExample: '她梦想进入常春藤学校深造。', englishExample: 'She dreams of studying at an Ivy League school。' },
+                  { chinese: '夜校 (夜间部) (yè xiào)', english: 'Night School', description: '提供夜间课程的学校，适合上班族或非传统学生。', englishDescription: 'Schools that offer evening classes, suitable for working adults or non-traditional learners。', chineseExample: '他白天工作，晚上在夜校上课。', englishExample: 'He works during the day and takes night school classes in the evening。' },
+                ],
+              },
+              {
+                category: '学校时间与模式 (School Time & Modes)',
+                id: 'school-time-modes',
+                number: '4.4',
+                terms: [
+                  { chinese: '全日制 (quán rì zhì)', english: 'Full-time School / Program', description: '学生全天在校学习的教育模式，例如全日制幼儿园。', englishDescription: 'An educational model where students attend school full-time, such as a full-time preschool。' },
+                  { chinese: '半日制 (bàn rì zhì)', english: 'Part-time School / Program', description: '学生部分时间在校学习的教育模式，例如半日制幼儿园。', englishDescription: 'An educational model where students attend school part-time, such as a part-time preschool。' },
+                ],
+              },
+            ],
+          },
+          {
+            category: '🏫 学校办公室 (School Offices)',
+            id: 'school-offices',
+            number: '5',
+            terms: [
+              { chinese: '医务室 (yī wù shì)', english: 'Nurse\'s Office', description: '学校里护士提供医疗护理的地方。', englishDescription: 'A place in a school where a nurse provides medical care。' },
+              { chinese: '失物招领 (失物招领处) (shī wù zhāo lǐng)', english: 'Lost and Found', description: '用于收集和找回失物的指定区域。', englishDescription: 'A designated area for collecting and retrieving lost items。' },
+              { chinese: '游乐场 (操场) (yóu lè chǎng (cāo chǎng))', english: 'Playground (Sports Field)', description: '一个配备游乐设备供娱乐活动的户外区域。', englishDescription: 'An outdoor area equipped with playground equipment for recreational activities。' },
+              { chinese: '体育馆 (tǐ yù guǎn)', english: 'Gymnasium', description: '用于体育课和体育活动的大型室内场地。', englishDescription: 'A large indoor space for physical education classes and sports activities。' },
+              { chinese: '教室 (jiào shì)', english: 'Classroom', description: '教学和学习发生的地方。', englishDescription: 'A room where teaching and learning occur。' },
+              { chinese: '主任室 (zhǔ rèn shì)', english: 'Principal\'s Office', description: '学校校长的办公室，处理行政事务的地方。', englishDescription: 'The office of the school principal where administrative tasks are handled。' },
+              { chinese: '办公室 (bàn gōng shì)', english: 'Office', description: '学校员工处理行政事务和文书工作的地方。', englishDescription: 'A general area where school staff handle administrative duties and paperwork。' },
+              { chinese: '自习室 / 自修室 (zì xí shì / zì xiū shì)', english: 'Study Hall', description: '为学生独立或小组学习而设的安静区域。', englishDescription: 'A quiet area designated for students to study independently or in groups。' },
+              { chinese: '会议室 (huì yì shì)', english: 'Meeting Room', description: '用于员工、管理层和有时学生开会的空间。', englishDescription: 'A space used for meetings among staff, administration, and sometimes students。' },
+              { chinese: '(班级) 教室 (bān jí jiào shì)', english: 'Homeroom', description: '学生上学时首先见面进行点名和公告的教室。', englishDescription: 'A classroom where students meet for attendance and announcements, usually at the start of the day。' },
+              { chinese: '图书馆 (tú shū guǎn lǐ yuán)', english: 'Library', description: '提供书籍、资源和学习材料供学生使用的地方。', englishDescription: 'A space where books, resources and study materials are available for student use。' },
+              { chinese: '(科学) 实验室 (shí yàn shì)', english: 'Science Lab', description: '用于进行科学实验和活动的专门房间。', englishDescription: 'A specialized room equipped for conducting scientific experiments and activities。' },
+              { chinese: '美术室 (měi shù shì)', english: 'Art Room', description: '专为艺术课和创意活动而设的空间。', englishDescription: 'A space designated for art classes and creative activities。' },
+              { chinese: '音乐室 (yīn yuè shì)', english: 'Music Room', description: '进行音乐课的地方，配备乐器。', englishDescription: 'A space where music classes take place, equipped with musical instruments。' },
+              { chinese: '(信息) 技术室 (jì shù shì)', english: 'Computer Lab', description: '配备计算机用于教授信息技术和计算机科学的房间。', englishDescription: 'A room equipped with computers for teaching information technology and computer science。' },
+              { chinese: '语言 (实验) 室 (yǔ yán shí yàn shì)', english: 'Language Lab', description: '专为语言学习而设的房间，通常配备音视频技术。', englishDescription: 'A room designed for language learning, often equipped with audio-visual technology。' },
+            ],
+          },
+          {
+            category: '📜 文凭类型 (Types of Diplomas)',
+            id: 'types-of-diplomas',
+            number: '6',
+            terms: [
+              { chinese: '毕业证书 (bì yè zhèng shū)', english: 'Diploma', description: '学生完成某一阶段学习后获得的正式证书。', englishDescription: 'Formal certificate awarded upon completion of a study program。', chineseExample: '他拿到了大学的毕业证书。', englishExample: 'He received his university diploma。' },
+              { chinese: '学士学位 (xué shì xué wèi)', english: 'Bachelor\'s Degree', description: '高等教育本科阶段授予的学位。(4年左右 / around 4 years)', englishDescription: 'Degree awarded upon completion of undergraduate college education。', chineseExample: '她获得了学士学位。', englishExample: 'She earned her bachelor\'s degree。' },
+              { chinese: '副学士学位 (fù xué shì xué wèi)', english: 'Associate\'s Degree', description: '高等教育中通常为两年制的学位。(2年 / 2 years)', englishDescription: 'A two-year college degree, often from community colleges。', chineseExample: '他完成了副学士学位课程。', englishExample: 'He completed an associate\'s degree program。' },
+              { chinese: '硕士学位 (shuò shì xué wèi)', english: 'Master\'s Degree', description: '研究生阶段授予的高级学位。', englishDescription: 'Advanced degree awarded after undergraduate studies。', chineseExample: '她获得了硕士学位。', englishExample: 'She earned her master\'s degree。' },
+              { chinese: '博士学位 (bó shì xué wèi)', english: 'Doctoral Degree', description: '最高级别的学术学位，通常需要进行原创研究。', englishDescription: 'The highest academic degree, usually requiring original research。', chineseExample: '他获得了博士学位。', englishExample: 'He earned his doctoral degree。' },
+              { chinese: '学术成果 (xué shù chéng guǒ)', english: 'Academic Achievement', description: '在学术领域取得的研究成果或荣誉。', englishDescription: 'Research results or honors achieved in academia。', chineseExample: '他的学术成果获得了认可。', englishExample: 'His academic achievements were recognized。' },
+              { chinese: '学习资源 (xué xí zī yuán)', english: 'Learning Resources', description: '用于支持学习的材料和工具。', englishDescription: 'Materials and tools that support learning。', chineseExample: '图书馆提供丰富的学习资源。', englishExample: 'The library provides abundant learning resources。' },
+              { chinese: '教学法 (jiào xué fǎ)', english: 'Teaching Method', description: '教师采用的教学策略和方法。', englishDescription: 'Strategies and methods used by teachers in instruction。', chineseExample: '这位老师使用了多种教学法。', englishExample: 'The teacher used various teaching methods。' },
+            ],
+          },
+          {
+            category: '📈 升学进度表达词 (Words to Express Academic Progress)',
+            id: 'academic-progress',
+            number: '7',
+            terms: [
+              { chinese: '录取 (lùqǔ)', english: 'to be admitted', description: '被学校正式接受为学生，通常在考试或申请后获得资格。', englishDescription: 'To be officially accepted by a school after exams or application。' },
+              { chinese: '升学 (shēngxué)', english: 'academic progression', description: '学生从较低级别的学校毕业后，进入到更高一级的学校继续学习的过程。比如从小学进初中、初中进高中、再高中考入大学。', englishDescription: 'Many students plan their academic progression after high school。' },
+              { chinese: '升级 (shēngjí)', english: 'to be promoted / promotion', description: '年级晋升，常见于K–12。', englishDescription: 'Moving to the next grade level in school。' },
+              { chinese: '升入中学 (shēngrù zhōngxué)', english: 'to move up to middle school', description: '指升入某个具体阶段。', englishDescription: 'Moving from one school level to another。' },
+              { chinese: '升入大学 (shēngrù dàxué)', english: 'to proceed to university', description: '正式用语，表示进入高等教育。', englishDescription: 'A formal way to say entering higher education。' },
+              { chinese: '考入大学 (kǎo rù dà xué)', english: 'to gain admission to a university', description: '通过考试/申请被录取。', englishDescription: 'Being admitted by entrance exam or application。' },
+              { chinese: '注册 (zhùcè)', english: 'to matriculate', description: '正式注册成为学生。', englishDescription: 'Officially enrolled in a university。' },
+              { chinese: '入学 (rùxué)', english: 'enrollment', description: '开始新的学习阶段。', englishDescription: 'Beginning of a new stage of learning。' },
+              { chinese: '毕业 (bìyè)', english: 'graduation', description: '完成某一学习阶段。', englishDescription: 'Finishing a level of education。' },
+              { chinese: '继续深造 (jìxù shēnzào)', english: 'to continue one\'s education', description: '泛指后续学习（学历或非学历）。', englishDescription: 'Any further education (degree or non-degree)。' },
+              { chinese: '申请 (shēnqǐng)', english: 'to apply (to schools)', description: '向学校提交入学请求，可包括提交表格、成绩、推荐信等材料。', englishDescription: 'To submit an application to a school, often including forms, grades, and recommendations。' },
+              { chinese: '报考 (bàokǎo)', english: 'to sign up for entrance exams', description: '报名参加学校的入学考试，常用于高考、研考等正式考试场合。', englishDescription: 'To register for entrance exams, commonly used for Gaokao or graduate exams。' },
+              { chinese: '入学考试 (rùxué kǎoshì)', english: 'entrance exam', description: '为进入新学校或阶段而进行的考试。', englishDescription: 'Exam taken before entering a new school or educational level。' },
+              { chinese: '录取通知书 (lùqǔ tōngzhīshū)', english: 'admission letter', description: '学校发出的正式接受函件，表明学生已被录取。', englishDescription: 'An official letter from a school confirming a student’s admission。' },
+              { chinese: '注册课程 (zhùcè kèchéng)', english: 'to register for class', description: '在入学后选择或报名具体课程，如大学或K–12阶段的课程注册。', englishDescription: 'To sign up for specific classes or courses after enrollment。' },
+            ],
+          },
+          {
+            category: '🎓 典礼类 (Ceremonies)',
+            id: 'ceremonies',
+            number: '8',
+            terms: [
+              { chinese: '升学典礼 (shēngjí diǎnlǐ)', english: 'Promotion Ceremony', description: '多用于幼儿园、学前班，或年级之间的“升级”庆祝（非毕业阶段），如：幼儿园升小学、低年级晋升；用于强调“晋升”而非“毕业”。不过在日常表达中，也常被习惯性地称为“毕业典礼”。', englishDescription: 'Commonly used in preschool, kindergarten, or lower elementary transitions (e.g., Kindergarten ➝ Grade 1); emphasizes promotion rather than graduation. However, in casual speech, these are also often referred to as “ graduation ceremonies ” for convenience or celebration。', chineseExample: '幼儿园举行了升学典礼。', englishExample: 'The kindergarten held a promotion ceremony。' },
+              { chinese: '毕业典礼 (bìyè diǎnlǐ)', english: 'Graduation Ceremony', description: '用于庆祝学生完成一个学习阶段，并升入另一所学校继续学习。常见于小学、初中、高中、大学等。', englishDescription: 'Held to celebrate the completion of a stage of schooling and moving on to a new school, such as after elementary, middle, high school, or college。', chineseExample: '大学举办了毕业典礼。', englishExample: 'The university held a graduation ceremony。' },
+              { chinese: '结业典礼 (jié yè diǎnlǐ)', english: 'Completion Ceremony', description: '某一短期项目或培训课程结束时的庆祝仪式。', englishDescription: 'A ceremony celebrating the completion of a short-term program or training course。', chineseExample: '培训班举行了结业典礼。', englishExample: 'The training class held a completion ceremony。' },
+              { chinese: '颁奖典礼 (bān jiǎng diǎnlǐ)', english: 'Award Ceremony', description: '用于表彰优秀学生的荣誉场合。', englishDescription: 'A ceremony to honor outstanding students。', chineseExample: '学校举办了颁奖典礼。', englishExample: 'The school held an award ceremony。' },
+              { chinese: '迎新会 (yíng xīn huì)', english: 'Orientation / Welcome', description: '新生欢迎会，介绍校园、课程和人员。', englishDescription: 'A welcome event for new students introducing the campus, courses and staff。', chineseExample: '学院组织了迎新会。', englishExample: 'The college organized an orientation event。' },
+            ],
+          },
+          {
+            category: '🎤 表达与展示类活动 (Presentations & Speaking Events)',
+            id: 'presentations-speaking',
+            number: '9',
+            terms: [
+              { chinese: '讲座 (jiǎngzuò)', english: 'Lecture / Talk', description: '专业人士或教师面向学生的知识性演讲。', englishDescription: 'Knowledge-based speech given by professionals or teachers to students。' },
+              { chinese: '演讲 (yǎnjiǎng)', english: 'Speech / Public Speaking', description: '通常指学生个人公开发表言论（如竞选、比赛）。', englishDescription: 'Usually refers to individual students publicly speaking, such as in elections or contests。' },
+              { chinese: '演示 (yǎnshì)', english: 'Presentation / Demo', description: '展示某一主题、研究成果、项目等的介绍。', englishDescription: 'An introduction showing a topic, research results, or projects。' },
+              { chinese: '展示会 (zhǎnshì huì)', english: 'Showcase / Exhibition', description: '展示作品或成果的集体性活动（如PBL成果展）。', englishDescription: 'A collective event showcasing works or achievements (e.g., PBL exhibitions)。' },
+              { chinese: '研讨会 (yántǎo huì)', english: 'Seminar', description: '小型学术或专业讨论会，参与者共同探讨特定主题。', englishDescription: 'A small academic or professional discussion where participants explore a specific topic。' },
+              { chinese: '辩论赛 (biànlùn sài)', english: 'Debate', description: '两方或多方就特定议题展开争论的活动。', englishDescription: 'An event where two or more parties argue over specific issues。' },
+              { chinese: '海报展示 (hǎibào zhǎnshì)', english: 'Poster Presentation', description: '通常用于学术活动，学生通过海报介绍研究项目。', englishDescription: 'Often used in academic settings where students introduce research projects via posters。' },
+              { chinese: '学术会议 (xuéshù huìyì)', english: 'Academic Conference', description: '大型学术活动，专家学者交流研究成果。', englishDescription: 'Large academic event where experts and scholars share research findings。' },
+            ],
+          },
+          {
+            category: '🎨 文体与社交类活动 (Arts, Sports & Community)',
+            id: 'arts-sports-community',
+            number: '10',
+            terms: [
+              { chinese: '运动会 (yùndòng huì)', english: 'Sports Day', description: '学校组织的体育比赛日。', englishDescription: 'School-organized day of sports competitions。' },
+              { chinese: '文艺汇演 (wényì huìyǎn)', english: 'Talent Show', description: '学生表演才艺，如唱歌、跳舞、演奏等。', englishDescription: 'Students perform talents such as singing, dancing, and playing instruments。' },
+              { chinese: '游园会 (yóuyuán huì)', english: 'School Fair / Carnival', description: '包括游戏、美食、表演等社交类校园活动。', englishDescription: 'Campus social events including games, food, and performances。' },
+              { chinese: '家长会 (jiāzhǎng huì)', english: 'Parent-Teacher Conference', description: '教师与家长交流学生学习情况的会议。', englishDescription: 'A meeting where teachers and parents discuss students\' academic progress。' },
+              { chinese: '社团展示 (shètuán zhǎnshì)', english: 'Club Fair / Showcase', description: '社团在校园活动中展示其工作和招募新成员。', englishDescription: 'Clubs showcase their work and recruit new members during a school event。' },
+              { chinese: '社区服务 (shèqū fúwù)', english: 'Community Service', description: '学生在校外为社区提供的志愿服务。', englishDescription: 'Voluntary service provided by students to the community outside of school。' },
+              { chinese: '义卖会 (yì mài huì)', english: 'Bake Sale / Charity Event', description: '为筹集资金而举办的活动，通常用于支持慈善或学校项目。', englishDescription: 'An event held to raise funds, often for a charity or school project。' },
+              { chinese: '开放日 (kāi fàng rì)', english: 'Open House', description: '学校向公众或潜在学生开放，展示其设施和教学的活动。', englishDescription: 'An event where a school opens its doors to the public or prospective students to showcase its facilities and programs。' },
+              { chinese: '舞会 (wǔ huì)', english: 'School Dance', description: '学校组织的社交舞蹈活动。', englishDescription: 'A social dancing event organized by the school。' },
+              { chinese: '毕业舞会 (bì yè wǔ huì)', english: 'Prom', description: '高中或大学毕业前为学生举办的正式舞会。', englishDescription: 'A formal dance for students before high school or college graduation。' },
+              { chinese: '才艺表演 (cái yì biǎo yǎn)', english: 'Talent Show', description: '学生表演唱歌、跳舞或魔术等个人才艺。', englishDescription: 'Students perform their individual talents like singing, dancing or magic。' },
+              { chinese: '比赛 (bǐ sài)', english: 'Competition / Contest', description: '学生参与竞争以获得奖励的活动，如体育比赛或学术竞赛。', englishDescription: 'An event where students compete for prizes, such as a sports match or academic contest。' },
+              { chinese: '嘉年华 (jiā nián huá)', english: 'Carnival', description: '校园内的大型庆祝活动，包含游戏、游乐设施和表演。', englishDescription: 'A large celebratory event on campus that includes games, rides and performances。' },
+              { chinese: '文化节 (wén huà jié)', english: 'Cultural Festival', description: '庆祝不同文化并展示其传统、艺术和美食的活动。', englishDescription: 'An event celebrating different cultures and showcasing their traditions, arts, and food。' },
+            ],
+          },
+          {
+            category: '📝 成绩与评价 (Grades & Evaluation)',
+            id: 'grades-evaluation',
+            number: '11',
+            terms: [
+              { chinese: '成绩单 (chéng jì dān)', english: 'Transcript / Report Card', description: '记录学生在学期或学年中的表现和分数的正式文件。', englishDescription: 'An official document that records a student\'s performance and grades during a semester or school year。' },
+              { chinese: '学分 (xué fēn)', english: 'Credit', description: '完成某一课程或项目后获得的单元或点数。', englishDescription: 'A unit or point gained upon successful completion of a course or program。' },
+              { chinese: 'GPA (平均成绩点数) (píng jūn chéng jì diǎn shù)', english: 'Grade Point Average (GPA)', description: '衡量学生在课程中平均表现的数字。', englishDescription: 'A numerical measure of a student’s average performance in coursework。' },
+              { chinese: '期末考 (qī mò kǎo)', english: 'Final Exam', description: '在学期末或学年末对所学内容进行的综合性考试。', englishDescription: 'A comprehensive examination given at the end of a semester or academic year to test what has been learned。' },
+              { chinese: '期中考 (qī zhōng kǎo)', english: 'Midterm Exam', description: '在学期中段进行的考试，通常覆盖前半学期的内容。', englishDescription: 'An examination given in the middle of a semester, typically covering material from the first half of the term。' },
+              { chinese: '课堂表现 (kè táng biǎo xiàn)', english: 'Class Participation', description: '学生在课堂讨论、活动和问答中的积极程度和贡献。', englishDescription: 'The extent to which students engage in classroom discussions, activities, and question-and-answer sessions。' },
+              { chinese: '出勤 (chū qín)', english: 'Attendance', description: '学生在课堂上的出席情况。', englishDescription: 'The presence of students in class。' },
+              { chinese: '旷课 (kuàng kè)', english: 'Skipping Class / Unexcused Absence', description: '学生未经许可缺席课程的行为。', englishDescription: 'The act of a student missing a class without permission or a valid reason。' },
+              { chinese: '迟到 (chí dào)', english: 'Tardy / Late', description: '学生晚于规定时间到达课堂。', englishDescription: 'A student arriving late to class。' },
+              { chinese: '及格 (jí gé)', english: 'Pass (a course)', description: '达到或超过课程要求的最低分数线。', englishDescription: 'To meet or exceed the minimum score required to pass a course。' },
+              { chinese: '不及格 (bù jí gé)', english: 'Fail (a course)', description: '未达到课程要求的最低分数线。', englishDescription: 'To fail to meet the minimum score required to pass a course。' },
+              { chinese: '重修 (chóng xiū)', english: 'Retake (a course)', description: '再次修读一门未通过的课程。', englishDescription: 'To take a course again that was previously failed。' },
+              { chinese: '奖学金 (jiǎng xué jīn)', english: 'Scholarship', description: '基于学业成绩或其他才能而提供的经济援助。', englishDescription: 'Financial aid given to a student based on academic achievement or other talent。' },
+              { chinese: '助学金 (zhù xué jīn)', english: 'Grant / Bursary', description: '基于经济需求提供的经济援助。', englishDescription: 'Financial aid given to a student based on financial need。' },
+            ],
+          },
+          {
+            category: '🖥️ 教学工具与技术 (Teaching Tools & Technology)',
+            id: 'teaching-tools-technology',
+            number: '12',
+            terms: [
+              { chinese: '白板 (bái bǎn)', english: 'Whiteboard', description: '用于书写和展示信息的白色表面。', englishDescription: 'A white surface used for writing and displaying information。' },
+              { chinese: '电子白板 (diàn zǐ bái bǎn)', english: 'Smartboard / Interactive Whiteboard', description: '一种互动式教学工具，结合了投影和触控功能。', englishDescription: 'An interactive teaching tool that combines projection and touch functionality。' },
+              { chinese: '投影仪 (tóu yǐng yí)', english: 'Projector', description: '用于将图像或视频投射到屏幕上的设备。', englishDescription: 'A device that projects images or videos onto a screen。' },
+              { chinese: '电脑 (diàn nǎo)', english: 'Computer', description: '用于教学、研究和行政工作的电子设备。', englishDescription: 'An electronic device used for teaching, research, and administrative tasks。' },
+              { chinese: '平板电脑 (píng bǎn diàn nǎo)', english: 'Tablet', description: '一种便携式、带触摸屏的电脑。', englishDescription: 'A portable computer with a touchscreen。' },
+              { chinese: '教学软件 (jiào xué ruǎn jiàn)', english: 'Educational Software', description: '设计用于教育目的的程序，如学习管理系统 (LMS) 或学科专用软件。', englishDescription: 'Programs designed for educational purposes, such as Learning Management Systems (LMS) or subject-specific software。' },
+              { chinese: '学生信息系统 (xué shēng xìn xī xì tǒng)', english: 'Student Information System (SIS)', description: '用于管理学生数据、出勤和成绩的数据库。', englishDescription: 'A database used to manage student data, attendance, and grades。' },
+              { chinese: '在线课程平台 (zài xiàn kè chéng píng tái)', english: 'Online Course Platform', description: '提供在线课程和学习资源的网站或系统。', englishDescription: 'A website or system that provides online courses and learning resources。' },
+              { chinese: '数字图书馆 (shù zì tú shū guǎn)', english: 'Digital Library', description: '一个包含电子书、文章和多媒体资源的在线数据库。', englishDescription: 'An online database containing e-books, articles, and multimedia resources。' },
+              { chinese: '云端存储 (yún duān cún chǔ)', english: 'Cloud Storage', description: '用于存储和共享文件的在线服务。', englishDescription: 'An online service used to store and share files。' },
+            ],
+          },
+          {
+            category: '🧑‍🤝‍🧑 亲子关系与沟通 (Parent-Child Relations & Communication)',
+            id: 'parent-child-relations',
+            number: '13',
+            terms: [
+              { chinese: '家长 (jiāzhǎng)', english: 'Parent / Guardian', description: '学生的父母或法定监护人。', englishDescription: 'A student’s parent or legal guardian。' },
+              { chinese: '家长会 (jiāzhǎng huì)', english: 'Parent-Teacher Meeting', description: '教师与家长就学生的学习和发展进行交流的会议。', englishDescription: 'A meeting between teachers and parents to discuss a student’s academic progress and development。' },
+              { chinese: '亲子关系 (qīnzǐ guānxì)', english: 'Parent-child relationship', description: '父母与孩子之间的情感和互动联系。', englishDescription: 'The emotional and interactive connection between a parent and their child。' },
+              { chinese: '沟通 (gōutōng)', english: 'Communication', description: '信息的传递和交流。', englishDescription: 'The exchange and transfer of information。' },
+              { chinese: '教育理念 (jiàoyù lǐniàn)', english: 'Educational Philosophy', description: '关于教育目标和方法的信念与原则。', englishDescription: 'Beliefs and principles about the goals and methods of education。' },
+              { chinese: '家庭作业 (jiātíng zuòyè)', english: 'Homework', description: '学生需要在课后完成的学习任务。', englishDescription: 'Learning tasks that students are required to complete after school。' },
+              { chinese: '辅导 (fǔdǎo)', english: 'Tutoring / Guidance', description: '提供额外的学习帮助或指导。', englishDescription: 'Providing additional academic help or guidance。' },
+              { chinese: '学习习惯 (xuéxí xíguàn)', english: 'Study Habits', description: '学生学习时采用的常规行为和方法。', englishDescription: 'The regular behaviors and methods a student uses when studying。' },
+              { chinese: '榜样 (bǎngyàng)', english: 'Role Model', description: '学生钦佩和模仿的人。', englishDescription: 'A person a student admires and emulates。' },
+              { chinese: '尊重 (zūnzhòng)', english: 'Respect', description: '对他人表示敬意和理解。', englishDescription: 'Showing honor and understanding for others。' },
+              { chinese: '责任 (zérèn)', english: 'Responsibility', description: '对自己的行为和义务负责。', englishDescription: 'Being accountable for one\'s own actions and duties。' },
+              { chinese: '独立 (dúlì)', english: 'Independence', description: '能够自立自强，不依赖他人。', englishDescription: 'The ability to be self-reliant and not dependent on others。' },
+              { chinese: '自我管理 (zìwǒ guǎnlǐ)', english: 'Self-management', description: '管理自己的时间、任务和情绪的能力。', englishDescription: 'The ability to manage one\'s own time, tasks, and emotions。' },
+              { chinese: '鼓励 (gǔlì)', english: 'Encouragement', description: '给予支持和动力，帮助他人进步。', englishDescription: 'Giving support and motivation to help others improve。' },
+            ],
+          },
+          {
+            category: '🌐 术语与短语 (Terms & Phrases)',
+            id: 'terms-phrases',
+            number: '14',
+            terms: [
+              { chinese: '因材施教 (yīn cái shī jiào)', english: 'Teaching to Suit the Student', description: '根据学生的才能和能力进行教学。', englishDescription: 'To teach according to a student’s aptitude and ability。' },
+              { chinese: '言传身教 (yán chuán shēn jiào)', english: 'To Teach by Word and Example', description: '通过言语和行动来教育。', englishDescription: 'To educate through both words and personal example。' },
+              { chinese: '教育公平 (jiào yù gōng píng)', english: 'Educational Equity', description: '确保所有学生无论背景如何都能获得优质教育。', englishDescription: 'Ensuring all students have access to high-quality education regardless of their background。' },
+              { chinese: '教育资源 (jiào yù zī yuán)', english: 'Educational Resources', description: '用于教育目的的资金、材料和人员。', englishDescription: 'Funds, materials, and personnel used for educational purposes。' },
+              { chinese: '终身学习 (zhōng shēn xué xí)', english: 'Lifelong Learning', description: '持续不断地学习和发展个人技能。', englishDescription: 'The continuous acquisition of knowledge and personal development throughout one’s life。' },
+              { chinese: '核心素养 (hé xīn sù yǎng)', english: 'Core Competencies', description: '学生为适应未来社会发展应具备的关键知识、技能和态度。', englishDescription: 'The essential knowledge, skills, and attitudes students need to thrive in a changing world。' },
+              { chinese: '双减 (shuāng jiǎn)', english: 'Dual Reduction Policy', description: '中国政府旨在减轻学生过重学业负担和校外培训压力的政策。', englishDescription: 'A policy in China aimed at reducing students’ excessive academic burdens and pressure from off-campus tutoring。' },
+              { chinese: '教学大纲 (jiào xué dà gāng)', english: 'Curriculum / Syllabus', description: '概述课程内容、目标和评估方法的计划。', englishDescription: 'A plan that outlines the content, goals, and assessment methods of a course。' },
+              { chinese: '教育法 (jiào yù fǎ)', english: 'Education Law', description: '规范教育体系的法律法规。', englishDescription: 'Laws and regulations that govern the educational system。' },
+              { chinese: '学区 (xué qū)', english: 'School District', description: '管理特定地理区域内公立学校的行政单位。', englishDescription: 'An administrative unit that manages public schools within a specific geographic area。' },
+              { chinese: '留级 (liú jí)', english: 'To be held back / grade retention', description: '学生因未达到要求而留在同一学年。', englishDescription: 'A student being kept in the same grade level due to a failure to meet requirements。' },
+              { chinese: '辍学 (chuò xué)', english: 'To drop out of school', description: '学生在完成学业前永久离开学校。', englishDescription: 'A student permanently leaving school before completing their education。' },
+            ],
+          },
+        ];
+
+        // TermCard Component
+        const TermCard = ({ term }) => {
+            let descriptionElements = [];
+            if (term.isHtmlDescription) {
+                descriptionElements.push(<div key="html-desc" dangerouslySetInnerHTML={{ __html: term.description }} />);
+            } else {
+                if (term.description) {
+                    descriptionElements.push(
+                        <p key="chinese-desc" className="text-lg text-gray-300 mb-1">
+                            <strong>说明:</strong> {term.description}
+                            <button className="play-button ml-2" aria-label="Play Chinese description" onClick={() => playAudio(term.description, 'zh-CN')}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-volume-2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                            </button>
+                        </p>
+                    );
+                }
+                if (term.englishDescription) {
+                    descriptionElements.push(
+                        <p key="english-desc" className="text-lg text-gray-300 mb-2">
+                            <strong>Description:</strong> {term.englishDescription}
+                            <button className="play-button ml-2" aria-label="Play English description" onClick={() => playAudio(term.englishDescription, 'en-US')}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-volume-2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                            </button>
+                        </p>
+                    );
+                }
+            }
+
+            const ageRangeContent = term.ageRange ? (
+                <p className="text-lg text-gray-300 mb-2">
+                    <strong>年龄范围:</strong> {term.ageRange} {term.englishAgeRange ? `(${term.englishAgeRange})` : ''}
+                    <button className="play-button ml-2" aria-label="Play age range" onClick={() => playAudio(`${term.ageRange} ${term.englishAgeRange || ''}`, 'zh-CN')}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-volume-2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                    </button>
+                </p>
+            ) : null;
+
+            const chineseExample = term.chineseExample ? (
+                <p className="text-lg text-yellow-300 mb-1">
+                    <strong>中文范例:</strong> {term.chineseExample}
+                    <button className="play-button ml-2" aria-label="Play Chinese example" onClick={() => playAudio(term.chineseExample, 'zh-CN')}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-volume-2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                    </button>
+                </p>
+            ) : null;
+
+            const englishExample = term.englishExample ? (
+                <p className="text-lg text-green-300">
+                    <strong>English example:</strong> {term.englishExample}
+                    <button className="play-button ml-2" aria-label="Play English example" onClick={() => playAudio(term.englishExample, 'en-US')}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-volume-2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                    </button>
+                </p>
+            ) : null;
+
+            const examples = chineseExample || englishExample ? (
+                <div className="mt-4 p-4 border-l-4 border-yellow-500 bg-gray-700 rounded-r-lg">
+                    {chineseExample}
+                    {englishExample}
+                </div>
+            ) : null;
+
+            return (
+                <div className="border-b border-gray-700 pb-4 last:border-b-0">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                        <div className="flex-grow mb-2 md:mb-0">
+                            <h4 className="text-xl font-medium text-white">
+                                {term.chinese}
+                                <button className="play-button ml-2" aria-label={`Play Chinese pronunciation of ${term.chinese}`} onClick={() => playAudio(term.chinese, 'zh-CN')}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-volume-2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                                </button>
+                                <span className="text-base text-gray-400">({term.english})</span>
+                                <button className="play-button ml-2" aria-label={`Play English pronunciation of ${term.english}`} onClick={() => playAudio(term.english, 'en-US')}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-volume-2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                                </button>
+                            </h4>
+                        </div>
+                    </div>
+                    {descriptionElements}
+                    {ageRangeContent}
+                    {examples}
+                </div>
+            );
+        };
+
+        // CategorySection Component
+        const CategorySection = ({ section, filteredTerms }) => {
+            const note = section.note ? <p className="mb-4 text-gray-400 text-lg">{section.note}</p> : null;
+            const termsToDisplay = filteredTerms || section.terms;
+
+            return (
+                <div id={section.id} className={`${section.fullWidth ? 'w-full' : 'w-full'} mb-8`}>
+                    <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <h3 className="text-xl font-semibold text-blue-300 mb-4">{section.number}. {section.category}</h3>
+                        {note}
+                        <div className="space-y-4">
+                            {termsToDisplay.length > 0 ? (
+                                termsToDisplay.map((term, index) => (
+                                    <TermCard key={index} term={term} />
+                                ))
+                            ) : (
+                                <p className="text-center text-gray-600 text-xl py-10">
+                                    没有找到匹配的词汇。(No matching vocabulary found.)
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Main App Component
+        const App = () => {
+            const [selectedCategory, setSelectedCategory] = useState(vocabularyData[0].id);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [filteredResults, setFilteredResults] = useState([]);
+            const [isSidebarOpen, setIsSidebarOpen] = useState(false); // State for mobile sidebar toggle
+
+            // Flatten all terms for global search
+            const allTerms = useMemo(() => {
+                const terms = [];
+                vocabularyData.forEach(category => {
+                    if (category.children) {
+                        category.children.forEach(child => {
+                            terms.push(...child.terms);
+                        });
+                    } else {
+                        terms.push(...category.terms);
+                    }
+                });
+                return terms;
+            }, []);
+
+            useEffect(() => {
+                if (searchTerm) {
+                    const lowerCaseSearchTerm = searchTerm.toLowerCase();
+                    const results = allTerms.filter(term =>
+                        term.chinese.toLowerCase().includes(lowerCaseSearchTerm) ||
+                        term.english.toLowerCase().includes(lowerCaseSearchTerm) ||
+                        (term.description && term.description.toLowerCase().includes(lowerCaseSearchTerm)) ||
+                        (term.englishDescription && term.englishDescription.toLowerCase().includes(lowerCaseSearchTerm)) ||
+                        (term.chineseExample && term.chineseExample.toLowerCase().includes(lowerCaseSearchTerm)) ||
+                        (term.englishExample && term.englishExample.toLowerCase().includes(lowerCaseSearchTerm))
+                    );
+                    setFilteredResults(results);
+                } else {
+                    setFilteredResults([]); // Clear filtered results if search term is empty
+                }
+            }, [searchTerm, allTerms]);
+
+            const handleCategoryClick = (id) => {
+                setSelectedCategory(id);
+                setSearchTerm(''); // Clear search when navigating categories
+                setIsSidebarOpen(false); // Close sidebar on mobile after selection
+            };
+
+            const renderContent = () => {
+                if (searchTerm) {
+                    if (filteredResults.length === 0) {
+                        return (
+                            <p className="text-center text-gray-600 text-xl py-10">
+                                没有找到匹配的词汇。(No matching vocabulary found.)
+                            </p>
+                        );
+                    }
+                    return (
+                        <div className="space-y-4">
+                            <h2 className="text-3xl font-bold text-blue-400 mb-6">搜索结果 (Search Results)</h2>
+                            {filteredResults.map((term, index) => (
+                                <TermCard key={index} term={term} />
+                            ))}
+                        </div>
+                    );
+                } else {
+                    let currentSection = null;
+                    let parentSection = null;
+
+                    for (const section of vocabularyData) {
+                        if (section.id === selectedCategory) {
+                            currentSection = section;
+                            break;
+                        }
+                        if (section.children) {
+                            for (const child of section.children) {
+                                if (child.id === selectedCategory) {
+                                    currentSection = child;
+                                    parentSection = section;
+                                    break;
+                                }
+                            }
+                        }
+                        if (currentSection) break;
+                    }
+
+                    if (!currentSection) {
+                        currentSection = vocabularyData[0];
+                        setSelectedCategory(vocabularyData[0].id);
+                    }
+
+                    if (currentSection.children) {
+                        return (
+                            <div className="mb-8">
+                                <h2 className="text-3xl font-bold text-blue-400 mb-6">{currentSection.number}. {currentSection.category}</h2>
+                                <div className="space-y-6">
+                                    {currentSection.children.map((child, childIndex) => (
+                                        <CategorySection key={childIndex} section={child} />
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    } else {
+                         const displayParentHeader = parentSection && parentSection.id !== currentSection.id;
+                        return (
+                            <>
+                                {displayParentHeader && (
+                                    <h2 className="text-3xl font-bold text-blue-400 mb-6">{parentSection.number}. {parentSection.category}</h2>
+                                )}
+                                <CategorySection section={currentSection} />
+                            </>
+                        );
+                    }
+                }
+            };
+
+            const renderSidebarItem = (item) => (
+                <li key={item.id} className="mb-2">
+                    <a
+                        href={`#${item.id}`}
+                        onClick={() => handleCategoryClick(item.id)}
+                        className={`block p-2 rounded-md transition-colors duration-200 ${
+                            selectedCategory === item.id || (item.children && item.children.some(child => child.id === selectedCategory)) ? 'bg-blue-700 text-white' : 'hover:bg-gray-700'
+                        }`}
+                    >
+                        {item.number}. {item.category || item.chinese}
+                    </a>
+                </li>
+            );
+
+            return (
+                <>
+                    {/* Mobile Sidebar Toggle Button */}
+                    <button
+                        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-blue-600 text-white rounded-md shadow-lg"
+                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                    >
+                        {isSidebarOpen ? '✕ 关闭' : '☰ 菜单'}
+                    </button>
+
+                    {/* Sidebar */}
+                    <aside className={`fixed inset-y-0 left-0 w-64 bg-gray-900 text-gray-200 p-6 overflow-y-auto z-40 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 md:flex-shrink-0 transition-transform duration-300 ease-in-out`}>
+                        <h2 className="text-2xl font-bold text-blue-400 mb-6">目录 (Table of Contents)</h2>
+                        <ul className="space-y-2">
+                            {vocabularyData.map(section => (
+                                <React.Fragment key={section.id}>
+                                    {renderSidebarItem(section)}
+                                    {section.children && (
+                                        <ul className="ml-4 mt-2 space-y-1">
+                                            {section.children.map(child => renderSidebarItem(child))}
+                                        </ul>
+                                    )}
+                                </React.Fragment>
+                            ))}
+                        </ul>
+                    </aside>
+
+                    {/* Main Content Area */}
+                    <main className="flex-1 p-6 md:ml-64 transition-all duration-300 ease-in-out">
+                        {/* Search Bar */}
+                        <div className="mb-8 p-4 bg-gray-800 rounded-lg shadow-lg flex items-center">
+                            <input
+                                type="text"
+                                placeholder="搜索词汇 (Search vocabulary)..."
+                                className="flex-grow p-3 rounded-md bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                            <button
+                                className="ml-4 p-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200"
+                                onClick={() => setSearchTerm('')} // Clear search button
+                            >
+                                清除 (Clear)
+                            </button>
+                        </div>
+
+                        {renderContent()}
+
+                        {/* Buy me a milk tea section */}
+                        <section className="mt-12 p-6 bg-gray-100 rounded-lg shadow-md text-gray-800">
+                            <h2 className="text-2xl font-bold text-blue-800 mb-4">🧋 我在这期间花了不少功夫收集并整理这些词汇。如果这个应用对你有帮助，欢迎请我喝杯奶茶～ </h2>
+                            <p className="text-gray-700 mb-4">
+                                I've spent a great deal of time finding and organizing this vocabulary... If you found this helpful, feel free to treat me to a milk tea!
+                            </p>
+                            <p className="text-gray-700 mb-4 font-semibold">
+                                💌 PayPal: monokumazx@gmail.com
+                            </p>
+                        </section>
+                    </main>
+                </>
+            );
+        };
+
+        // Render the App component
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
